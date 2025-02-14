@@ -1,10 +1,12 @@
 import React from 'react'
 import Quiz from './components/quiz/Quiz'
+import Login from './components/login/Login'
 
 const App = () => {
   return (
     <>
-      <Quiz/>
+      <Login/>
+      {/* <Quiz/> */}
     </>
   )
 }
