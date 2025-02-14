@@ -1,10 +1,11 @@
 import React from 'react'
 import './Quiz.css'
+import PracticeTime from '../../assets/PracticeTime.jpg'
 
 const Quiz = () => {
   return (
     <div className='quizContainer'>
-        <h1>PracticeTime.ai</h1>
+       <img src={PracticeTime} alt="" />
         <hr />
         <h2>If a+b = 10 and a = 6 then b=?</h2>
         <ul>
