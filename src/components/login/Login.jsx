@@ -5,20 +5,40 @@ import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { app } from '../../firebase/firebaseSetup';
-import { getAuth, signInWithPopup,signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import Home from '../home/Home';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 
 
 const Login = () => {
     const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
+  const navigate = useNavigate(); // Initialize useNavigate
+
+  useEffect(() => {
+    // If user is already logged in, redirect to home
+    const isLoggedIn = localStorage.getItem("user");
+    if (isLoggedIn) {
+        navigate('/home');
+    }
+}, [navigate]);
 
   const handleGoogleLogin = async () => {
     try {
-      const result = await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      console.log("Logged in as:", user.displayName);
+      
       // You can save user data to your database here
+      if (user) {
+
+        console.log("Logged in as:", user.displayName);
+
+        // ✅ Save user login status in localStorage
+        localStorage.setItem("user", JSON.stringify(result.user));
+        
+        navigate('/home'); // Redirect to Home without reloading
+      }
     } catch (error) {
       console.error("Error during Google login", error);
     }}
