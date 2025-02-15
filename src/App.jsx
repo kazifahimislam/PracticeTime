@@ -9,7 +9,9 @@ const App = () => {
     { path : "/" ,
       element :<Login /> },
     {path : "/home",
-       element : <Home />}
+       element : <Home />},
+       {path : "/quiz",
+        element : <Quiz />}
   ])
   
   return (
