@@ -5,13 +5,16 @@ import PhoneInput from 'react-phone-input-2';
 import 'react-phone-input-2/lib/style.css';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { app } from '../../firebase/firebaseSetup';
-import { getAuth, signInWithPopup,signInWithRedirect, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import Home from '../home/Home';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 
 
 const Login = () => {
     const auth = getAuth(app);
   const provider = new GoogleAuthProvider();
+  const navigate = useNavigate(); // Initialize useNavigate
 
   const handleGoogleLogin = async () => {
     try {
@@ -19,6 +22,10 @@ const Login = () => {
       const user = result.user;
       console.log("Logged in as:", user.displayName);
       // You can save user data to your database here
+      if (user) {
+        
+        navigate('/home'); // Redirect to Home without reloading
+      }
     } catch (error) {
       console.error("Error during Google login", error);
     }}
