@@ -15,7 +15,7 @@ const Login = () => {
 
   const handleGoogleLogin = async () => {
     try {
-      const result = await signInWithRedirect(auth, provider);
+      const result = await signInWithPopup(auth, provider);
       const user = result.user;
       console.log("Logged in as:", user.displayName);
       // You can save user data to your database here
