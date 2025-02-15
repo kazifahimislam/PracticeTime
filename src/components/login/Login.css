@@ -25,3 +25,7 @@
     border-radius: 10px;
     cursor: pointer;
 }
+.loginContainer button:hover{
+    background: #3f91d0;
+}
+
