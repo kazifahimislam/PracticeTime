@@ -1,6 +1,6 @@
 import React from 'react'
 import './Quiz.css'
-import PracticeTime from '../../assets/PracticeTime.jpg'
+import PracticeTime from '../../assets/practiceTime.jpg'
 
 const Quiz = () => {
   return (
