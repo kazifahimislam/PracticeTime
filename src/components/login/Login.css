@@ -1,34 +1,169 @@
-.loginContainer{
-    width: 285px;
+/* Login.css - Updated with form styles */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f5f8fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  }
+  
+  .loginWrapper {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .loginContainer {
+    width: 320px;
     margin: auto;
-    
     background: white;
     color: #262626;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 15px;
     border-radius: 10px;
-    padding: 40px 50px;
-}
-.loginContainer img{
+    padding: 35px 40px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  
+  .loginContainer img {
     width: 70%;
-    margin: auto;
-}
-.loginContainer button{
-    margin: auto;
-    width: 210px;
-    height: 47px;
-    background:#3f91d0;
+    margin: 0 auto 10px;
+    display: block;
+  }
+  
+  .loginContainer hr {
+    width: 100%;
+    border: none;
+    height: 1px;
+    background-color: #e1e4e8;
+    margin: 10px 0 15px;
+  }
+  
+  .errorMessage {
+    background-color: #fff8f8;
+    color: #e53935;
+    padding: 10px;
+    border-radius: 5px;
+    border-left: 3px solid #e53935;
+    font-size: 14px;
+    margin-bottom: 5px;
+  }
+  
+  .loginForm {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    width: 100%;
+  }
+  
+  .formGroup {
+    position: relative;
+    width: 100%;
+  }
+  
+  .formGroup input {
+    width: 100%;
+    height: 45px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0 15px;
+    font-size: 15px;
+    outline: none;
+    transition: border-color 0.3s;
+  }
+  
+  .formGroup input:focus {
+    border-color: #3f91d0;
+  }
+  
+  .loginButton {
+    margin: 5px auto;
+    width: 100%;
+    height: 45px;
+    background: #3f91d0;
     color: #fff;
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 500;
-    border-radius: 50px;
+    border: none;
+    border-radius: 8px;
     cursor: pointer;
-    background-image: url();
-    
-}
-.loginContainer button:hover{
-    background:  #ccc7d2;
-    color: black;
-}
-
+    transition: background 0.3s;
+  }
+  
+  .loginButton:hover {
+    background: #3577ae;
+  }
+  
+  .loginButton:disabled {
+    background: #a0c4e4;
+    cursor: not-allowed;
+  }
+  
+  #signInWithGoogle {
+    margin: 10px auto 0;
+    width: 100%;
+    height: 45px;
+    background: #4285f4;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+  }
+  
+  #signInWithGoogle:hover {
+    background: #3367d6;
+  }
+  
+  #signInWithGoogle:disabled {
+    background: #a5baed;
+    cursor: not-allowed;
+  }
+  
+  .authToggle {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin: 5px 0;
+  }
+  
+  .authToggle span {
+    cursor: pointer;
+    color: #3f91d0;
+  }
+  
+  .authToggle span:hover {
+    text-decoration: underline;
+  }
+  
+  .divider {
+    position: relative;
+    text-align: center;
+    margin: 15px 0;
+  }
+  
+  .divider::before {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 1px;
+    background: #e1e4e8;
+    position: absolute;
+    top: 50%;
+  }
+  
+  .divider span {
+    background: white;
+    padding: 0 15px;
+    position: relative;
+    color: #888;
+    font-size: 14px;
+  }
