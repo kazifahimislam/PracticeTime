@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import PracticeTime from '../../assets/practiceTime.jpg';
 import { useNavigate } from 'react-router-dom';
-import { ref, get } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
-import firebaseServices from '../firebase/firebaseSetup'; // Ensure you have this import for your Firebase db
+import firebaseServices from '../firebase/firebaseSetup';
 import './Home.css';
+
 const Home = () => {
   const { auth, provider, db, ref, set, get, child } = firebaseServices;
   const navigate = useNavigate();
   const [assignedQuizzes, setAssignedQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [selectedQuizSet, setSelectedQuizSet] = useState('');
 
   useEffect(() => {
     const fetchAssignedQuizzes = async () => {
@@ -30,6 +31,9 @@ const Home = () => {
               Array.isArray(assignedSetsData) ? assignedSetsData : [];
             
             setAssignedQuizzes(quizzes);
+            if (quizzes.length > 0) {
+              setSelectedQuizSet(quizzes[0]); // Default to first quiz set
+            }
           } else {
             setAssignedQuizzes([]);
           }
@@ -44,8 +48,12 @@ const Home = () => {
     fetchAssignedQuizzes();
   }, []);
 
+  const handleQuizSetChange = (event) => {
+    setSelectedQuizSet(event.target.value);
+  };
+
   const navigateToQuiz = () => {
-    navigate('/quiz');
+    navigate('/quiz', { state: { selectedQuizSet } });
   };
 
   return (
@@ -62,12 +70,30 @@ const Home = () => {
             {assignedQuizzes.length > 0 ? (
               <>
                 <h2>You have {assignedQuizzes.length} quiz set(s) assigned:</h2>
-                <ul>
-                  {assignedQuizzes.map((quiz, index) => (
-                    <li key={index}>{quiz}</li>
-                  ))}
-                </ul>
-                <button onClick={navigateToQuiz}>Start Quiz</button>
+                
+                <div className="quizSetSelection">
+                  <label htmlFor="quizSetSelect">Select a quiz set to practice:</label>
+                  <select 
+                    id="quizSetSelect" 
+                    value={selectedQuizSet} 
+                    onChange={handleQuizSetChange}
+                    className="quizSetDropdown"
+                  >
+                    {assignedQuizzes.map((quiz, index) => (
+                      <option key={index} value={quiz}>
+                        {quiz}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                
+                <button 
+                  onClick={navigateToQuiz} 
+                  disabled={!selectedQuizSet}
+                  className="startQuizButton"
+                >
+                  Start Selected Quiz
+                </button>
               </>
             ) : (
               <div>

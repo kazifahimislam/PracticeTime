@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import './Quiz.css';
 import PracticeTime from '../../assets/practiceTime.jpg';
-
+import { useLocation, useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import firebaseServices from '../firebase/firebaseSetup';
 
 const Quiz = () => {
   const { auth, provider, db, ref, set, get, child } = firebaseServices;
+  const location = useLocation();
+  const navigate = useNavigate();
+  const selectedQuizSet = location.state?.selectedQuizSet;
+  
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -24,52 +28,47 @@ const Quiz = () => {
         const auth = getAuth();
         const user = auth.currentUser;
         
-        if (user) {
-          // Get user's assigned sets
-          const userRef = ref(db, `users/${user.uid}/assignedSets`);
-          const userSnapshot = await get(userRef);
-          
-          if (userSnapshot.exists()) {
-            const assignedSets = userSnapshot.val();
-            // Get the first set ID - in your structure this might be "20250228"
-            const setId = Object.keys(assignedSets)[0];
-            setCurrentSet(setId);
-            
-            // Now fetch all the question IDs for this set from attachedQuestionSets
-            const setRef = ref(db, `attachedQuestionSets/${setId}`);
-            const setSnapshot = await get(setRef);
-            
-            if (setSnapshot.exists()) {
-              const setData = setSnapshot.val();
-              // Based on Image 2, the structure has question IDs as object keys
-              // We need to extract these IDs
-              const questionIds = Object.keys(setData).map(key => key);
-              
-              // Fetch each question
-              const questionPromises = questionIds.map(id => 
-                get(ref(db, `questions/${id}`))
-              );
-              
-              const questionSnapshots = await Promise.all(questionPromises);
-              const loadedQuestions = questionSnapshots
-                .filter(snap => snap.exists())
-                .map(snap => ({
-                  id: snap.key,
-                  ...snap.val()
-                }));
-              
-              setQuestions(loadedQuestions);
-              
-              // Initialize empty user responses array
-              setUserResponses(new Array(loadedQuestions.length).fill(null));
-            } else {
-              setError("No questions found in this set");
-            }
-          } else {
-            setError("No assigned sets found for this user");
-          }
-        } else {
+        if (!user) {
           setError("User not authenticated");
+          return;
+        }
+        
+        if (!selectedQuizSet) {
+          setError("No quiz set selected");
+          return;
+        }
+        
+        // Set the current quiz set
+        setCurrentSet(selectedQuizSet);
+        
+        // Fetch question IDs for this specific set
+        const setRef = ref(db, `attachedQuestionSets/${selectedQuizSet}`);
+        const setSnapshot = await get(setRef);
+        
+        if (setSnapshot.exists()) {
+          const setData = setSnapshot.val();
+          // Extract question IDs from the set data
+          const questionIds = Object.keys(setData);
+          
+          // Fetch each question
+          const questionPromises = questionIds.map(id => 
+            get(ref(db, `questions/${id}`))
+          );
+          
+          const questionSnapshots = await Promise.all(questionPromises);
+          const loadedQuestions = questionSnapshots
+            .filter(snap => snap.exists())
+            .map(snap => ({
+              id: snap.key,
+              ...snap.val()
+            }));
+          
+          setQuestions(loadedQuestions);
+          
+          // Initialize empty user responses array
+          setUserResponses(new Array(loadedQuestions.length).fill(null));
+        } else {
+          setError(`No questions found in set: ${selectedQuizSet}`);
         }
       } catch (error) {
         console.error("Error fetching quiz data:", error);
@@ -80,7 +79,7 @@ const Quiz = () => {
     };
 
     fetchQuizData();
-  }, []);
+  }, [selectedQuizSet]);
 
   const handleNextQuestion = () => {
     // Save the current answer to user responses
@@ -154,6 +153,7 @@ const Quiz = () => {
           score: results.score,
           correctAnswers: results.correctAnswers,
           totalQuestions: results.totalQuestions,
+          selectedSet: currentSet,
           responses: responses
         });
         
@@ -190,6 +190,10 @@ const Quiz = () => {
     setQuizResults(null);
   };
 
+  const handleBackToHome = () => {
+    navigate('/');
+  };
+
   if (loading) {
     return (
       <div className="quizContainer">
@@ -206,8 +210,8 @@ const Quiz = () => {
       <div className="quizContainer">
         <div className="errorContainer">
           <p className="errorMessage">{error}</p>
-          <button onClick={() => window.location.reload()} className="retryButton">
-            Retry
+          <button onClick={handleBackToHome} className="retryButton">
+            Back to Home
           </button>
         </div>
       </div>
@@ -217,7 +221,10 @@ const Quiz = () => {
   if (questions.length === 0) {
     return (
       <div className="quizContainer">
-        <p className="noQuestionsMessage">No questions found for this quiz.</p>
+        <p className="noQuestionsMessage">No questions found for this quiz set.</p>
+        <button onClick={handleBackToHome} className="retryButton">
+          Back to Home
+        </button>
       </div>
     );
   }
@@ -226,6 +233,10 @@ const Quiz = () => {
     return (
       <div className="quizContainer resultsContainer">
         <h1 className="resultsTitle">Quiz Results</h1>
+        
+        <div className="setInfo">
+          <p>Quiz Set: {currentSet}</p>
+        </div>
         
         <div className="scoreCard">
           <div className="scoreCircle">
@@ -269,7 +280,7 @@ const Quiz = () => {
           <button onClick={handleRetakeQuiz} className="retakeButton">
             Retake Quiz
           </button>
-          <button onClick={() => window.location.href = '/'} className="homeButton">
+          <button onClick={handleBackToHome} className="homeButton">
             Back to Home
           </button>
         </div>
@@ -286,6 +297,10 @@ const Quiz = () => {
 
   return (
     <div className='quizContainer'>
+      <div className="quizHeader">
+        <h2>Quiz Set: {currentSet}</h2>
+      </div>
+      
       <div className="progressBarContainer">
         <div 
           className="progressBar" 
