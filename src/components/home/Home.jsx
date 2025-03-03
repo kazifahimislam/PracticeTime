@@ -73,12 +73,14 @@ const Home = () => {
                 
                 <div className="quizSetSelection">
                   <label htmlFor="quizSetSelect">Select a quiz set to practice:</label>
+                  
                   <select 
                     id="quizSetSelect" 
                     value={selectedQuizSet} 
                     onChange={handleQuizSetChange}
                     className="quizSetDropdown"
                   >
+                    
                     {assignedQuizzes.map((quiz, index) => (
                       <option key={index} value={quiz}>
                         {quiz}
