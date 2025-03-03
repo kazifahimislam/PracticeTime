@@ -1,11 +1,5 @@
 /* Login.css - Updated with form styles */
-body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background-color: #f5f8fa;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  }
+
   
   .loginWrapper {
     display: flex;

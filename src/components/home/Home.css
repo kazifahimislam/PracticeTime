@@ -1,0 +1,133 @@
+/* Quiz Home Page Styles */
+
+.homeContainer {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+    font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+    color: #333;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+  }
+  
+  .homeContainer h1 {
+    text-align: center;
+    color: #2c3e50;
+    font-size: 28px;
+    margin-bottom: 30px;
+    font-weight: 600;
+  }
+  
+  .quizContainer {
+    background-color: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .quizContainer img {
+    max-width: 30%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .quizContainer hr {
+    width: 100%;
+    border: none;
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 20px 0;
+  }
+  
+  .assignedQuizInfo {
+    width: 100%;
+    text-align: center;
+    padding: 15px 0;
+  }
+  
+  .assignedQuizInfo h2 {
+    color: #3498db;
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .assignedQuizInfo ul {
+    list-style-type: none;
+    padding: 0;
+    margin: 20px 0;
+  }
+  
+  .assignedQuizInfo li {
+    background-color: #f0f7ff;
+    margin: 10px auto;
+    padding: 12px 15px;
+    border-radius: 6px;
+    border-left: 4px solid #3498db;
+    font-weight: 500;
+    text-align: left;
+    max-width: 400px;
+  }
+  
+  .assignedQuizInfo p {
+    color: #7f8c8d;
+    font-size: 16px;
+    margin: 25px 0;
+  }
+  
+  button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 16px;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    margin-top: 15px;
+  }
+  
+  button:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  button:disabled {
+    background-color: #bdc3c7;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  /* Loading state */
+  .assignedQuizInfo p:first-child {
+    color: #3498db;
+    font-style: italic;
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 600px) {
+    .homeContainer {
+      padding: 15px;
+    }
+    
+    .homeContainer h1 {
+      font-size: 24px;
+    }
+    
+    .quizContainer {
+      padding: 15px;
+    }
+    
+    button {
+      padding: 10px 25px;
+      font-size: 14px;
+    }
+  }
