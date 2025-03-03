@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { ref, get } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 import firebaseServices from '../firebase/firebaseSetup'; // Ensure you have this import for your Firebase db
-
+import './Home.css';
 const Home = () => {
   const { auth, provider, db, ref, set, get, child } = firebaseServices;
   const navigate = useNavigate();
@@ -51,7 +51,7 @@ const Home = () => {
   return (
     <div className='homeContainer'>
       <h1>The more you practice, the better you become</h1>
-      <div className='quizContainer'>
+      <div className='quizHomeContainer'>
         <img src={PracticeTime} alt="Practice time illustration" />
         <hr />
         
