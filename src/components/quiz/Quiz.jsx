@@ -100,21 +100,43 @@ const Quiz = () => {
       handleQuizComplete(updatedResponses);
     }
   };
+  // Helper function to normalize answers for comparison
+const normalizeAnswer = (answer) => {
+  if (answer === null || answer === undefined) return '';
+  
+  // Convert to string, trim whitespace, and convert to lowercase
+  let normalized = String(answer).trim().toLowerCase();
+  
+  // Remove extra spaces between words
+  normalized = normalized.replace(/\s+/g, ' ');
+  
+  // Handle numeric values (e.g., "1" and 1 should match)
+  if (!isNaN(normalized) && !isNaN(parseFloat(normalized))) {
+    normalized = parseFloat(normalized).toString();
+  }
+  
+  return normalized;
+};
 
-  const isAnswerCorrect = (userAnswer, correctAnswer) => {
-    // Handle different ways correctAnswer might be stored
-    if (typeof correctAnswer === 'string') {
-      return userAnswer?.toLowerCase() === correctAnswer.toLowerCase();
-    } else if (Array.isArray(correctAnswer)) {
-      return correctAnswer.some(answer => 
-        userAnswer?.toLowerCase() === answer.toLowerCase()
-      );
-    } else if (correctAnswer && typeof correctAnswer === 'object' && correctAnswer.text) {
-      return userAnswer?.toLowerCase() === correctAnswer.text.toLowerCase();
-    }
-    return false;
-  };
-
+  // Updated isAnswerCorrect function
+const isAnswerCorrect = (userAnswer, correctAnswer) => {
+  // Normalize user answer
+  const normalizedUserAnswer = normalizeAnswer(userAnswer);
+  
+  // Handle different ways correctAnswer might be stored
+  if (typeof correctAnswer === 'string') {
+    return normalizedUserAnswer === normalizeAnswer(correctAnswer);
+  } else if (Array.isArray(correctAnswer)) {
+    // Check if any of the correct answers match
+    return correctAnswer.some(answer => 
+      normalizedUserAnswer === normalizeAnswer(answer)
+    );
+  } else if (correctAnswer && typeof correctAnswer === 'object' && correctAnswer.text) {
+    return normalizedUserAnswer === normalizeAnswer(correctAnswer.text);
+  }
+  
+  return false;
+};
   const calculateResults = (responses) => {
     const totalQuestions = responses.length;
     const correctAnswers = responses.filter(response => response.isCorrect).length;

@@ -37,7 +37,7 @@ const Navbar = () => {
 
       <nav className={showmenu ? "menu-mobile" : "menu-web"}>
         <ul>
-          
+        <li onClick={() => handleNavigation("/")}>Home Page</li>
           <li onClick={handleLogout}>Log out</li>
         </ul>
       </nav>
