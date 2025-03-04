@@ -94,13 +94,13 @@ const Home = () => {
                   disabled={!selectedQuizSet}
                   className="startQuizButton"
                 >
-                  Start Selected Quiz
+                  Start practice
                 </button>
               </>
             ) : (
               <div>
                 <p>You don't have any quizzes assigned yet.</p>
-                <button disabled>Start Quiz</button>
+                <button disabled>Start practice</button>
               </div>
             )}
           </div>
