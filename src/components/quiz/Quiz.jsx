@@ -169,6 +169,10 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
       const user = auth.currentUser;
       
       if (user && currentSet) {
+        // Reference to the user's quiz sets
+        const userQuizSetsRef = ref(db, `users/${user.uid}/assignedSets`);
+        
+        // Save quiz results
         const resultsRef = ref(db, `users/${user.uid}/quizResults/${currentSet}`);
         await set(resultsRef, {
           completedAt: new Date().toISOString(),
@@ -179,10 +183,23 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
           responses: responses
         });
         
-        console.log("Quiz completed and results saved!", results);
+        // Remove the completed quiz set from user's available sets
+        // First, get the current available sets
+        const availableSetsSnapshot = await get(userQuizSetsRef);
+        if (availableSetsSnapshot.exists()) {
+          const availableSets = availableSetsSnapshot.val();
+          
+          // Remove the current set from available sets
+          delete availableSets[currentSet];
+          
+          // Update the available sets
+          await set(userQuizSetsRef, availableSets);
+        }
+        
+        console.log("Quiz completed, results saved, and set removed!", results);
       }
     } catch (error) {
-      console.error("Error saving quiz results:", error);
+      console.error("Error saving quiz results and removing set:", error);
     }
   };
 
@@ -299,9 +316,7 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
         </div>
         
         <div className="actionButtons">
-          <button onClick={handleRetakeQuiz} className="retakeButton">
-            Retake Quiz
-          </button>
+          
           <button onClick={handleBackToHome} className="homeButton">
             Back to Home
           </button>
