@@ -1,25 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import firebaseServices from '../firebase/firebaseSetup';
 import './Home.css';
 import practiceTime from '../../assets/practiceTime.jpg';
 
 const Home = () => {
-  const { auth, provider, db, ref, set, get, child } = firebaseServices;
+  const { db, ref, get } = firebaseServices;
   const navigate = useNavigate();
   const [assignedQuizzes, setAssignedQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dailyQuizSet, setDailyQuizSet] = useState('');
   const [hasQuizzes, setHasQuizzes] = useState(false);
+  const [user, setUser] = useState(null);
   
+  // Listen for authentication state changes
+  useEffect(() => {
+    const auth = getAuth();
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setLoading(true); // Reset loading when auth state changes
+    });
+    
+    // Clean up subscription
+    return () => unsubscribe();
+  }, []);
+  
+  // Fetch quizzes whenever user changes
   useEffect(() => {
     const fetchAssignedQuizzes = async () => {
       try {
-        setLoading(true);
-        const auth = getAuth();
-        const user = auth.currentUser;
-        
         if (!user) {
           setLoading(false);
           setHasQuizzes(false);
@@ -27,11 +37,15 @@ const Home = () => {
         }
         
         const userId = user.uid;
+        console.log("Fetching quizzes for user:", userId);
+        
         const userRef = ref(db, `users/${userId}/assignedSets`);
         const snapshot = await get(userRef);
         
         if (snapshot.exists()) {
           const assignedSetsData = snapshot.val();
+          console.log("Assigned sets data:", assignedSetsData);
+          
           let quizzes = [];
           
           // Handle different data structures
@@ -41,6 +55,8 @@ const Home = () => {
             quizzes = assignedSetsData.filter(item => item); // Filter out null/undefined values
           }
           
+          console.log("Processed quizzes:", quizzes);
+          
           // Check if there are valid quizzes
           if (quizzes.length > 0) {
             setAssignedQuizzes(quizzes);
@@ -49,12 +65,13 @@ const Home = () => {
             // Get daily quiz set based on the date
             const dailySet = getDailyQuizSet(quizzes);
             setDailyQuizSet(dailySet);
+            console.log("Daily quiz set:", dailySet);
           } else {
             setAssignedQuizzes([]);
             setHasQuizzes(false);
           }
         } else {
-          // No assigned sets found
+          console.log("No assigned sets found");
           setAssignedQuizzes([]);
           setHasQuizzes(false);
         }
@@ -67,7 +84,7 @@ const Home = () => {
     };
     
     fetchAssignedQuizzes();
-  }, []);
+  }, [user, db]); // Re-run when user or db changes
   
   // Function to determine the daily quiz set based on the date
   const getDailyQuizSet = (quizzes) => {
