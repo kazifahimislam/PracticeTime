@@ -3,7 +3,9 @@
 .homeContainer {
     max-width: 350px;
     margin: 0 auto;
-    height: 550px;
+  
+    max-height: 800px;
+    min-height: 550px;
     padding: 20px;
     background-color: #ffffff;
     border-radius: 12px;
