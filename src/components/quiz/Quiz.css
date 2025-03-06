@@ -3,11 +3,14 @@
 /* Main Container */
 .quizContainer {
     
-    overflow-y: auto;
+  overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
     
     width: 60%;
     min-height: 550px;
     max-height: 800px;
+    
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -20,6 +23,9 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     font-family: 'Roboto', sans-serif;
   }
+  .quizContainer::-webkit-scrollbar {
+    display: none;
+}
   .quizContainer img {
     margin: 0 auto;
     width: 30%;
@@ -68,12 +74,12 @@
   
   /* Images */
   
-  .questionImage, .defaultImage {
-    width: 55%;
-    max-height: 300px;
+ .quizContainer .questionImage {
+   
+    width: 100%;
     object-fit: contain;
     border-radius: 8px;
-    margin-bottom: 20px;
+    
   }
   
   /* Question Container */
@@ -347,10 +353,17 @@
   /* Responsive Adjustments */
   @media (max-width: 768px) {
     .quizContainer {
+      max-width: 90%;
+      overflow-y: auto;
+      scrollbar-width: none; /* Firefox */
+      -ms-overflow-style: none; /* IE and Edge */
       
       padding: 15px;
       border-radius: 8px;
     }
+    .quizContainer::-webkit-scrollbar {
+      display: none;
+  }
     
     .questionText {
       font-size: 18px;
@@ -369,4 +382,8 @@
     .actionButtons {
       flex-direction: column;
     }
+    .quizContainer .questionImage {
+      width: 100%;
+    }
   }
+    
