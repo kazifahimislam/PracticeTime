@@ -4,9 +4,10 @@
     color: #f6f6f6;
     font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
 }
-.wrapper h2 {
+.wrapper img {
     cursor: pointer;
-    color: black;
+    height: 30px;
+    
 }
 .menu-web {
     display: flex;

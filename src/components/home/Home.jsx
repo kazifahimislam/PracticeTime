@@ -10,7 +10,8 @@ const Home = () => {
   const navigate = useNavigate();
   const [assignedQuizzes, setAssignedQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedQuizSet, setSelectedQuizSet] = useState('');
+  const [dailyQuizSet, setDailyQuizSet] = useState('');
+  const [hasQuizzes, setHasQuizzes] = useState(false);
 
   useEffect(() => {
     const fetchAssignedQuizzes = async () => {
@@ -26,20 +27,28 @@ const Home = () => {
           if (snapshot.exists()) {
             const assignedSetsData = snapshot.val();
             // If assignedSets is an object, convert to array
-            const quizzes = typeof assignedSetsData === 'object' ? 
-              Object.keys(assignedSetsData) : 
+            const quizzes = typeof assignedSetsData === 'object' ?
+              Object.keys(assignedSetsData) :
               Array.isArray(assignedSetsData) ? assignedSetsData : [];
             
             setAssignedQuizzes(quizzes);
+            
             if (quizzes.length > 0) {
-              setSelectedQuizSet(quizzes[0]); // Default to first quiz set
+              setHasQuizzes(true);
+              // Get daily quiz set based on the date
+              const dailySet = getDailyQuizSet(quizzes);
+              setDailyQuizSet(dailySet);
+            } else {
+              setHasQuizzes(false);
             }
           } else {
             setAssignedQuizzes([]);
+            setHasQuizzes(false);
           }
         }
       } catch (error) {
         console.error("Error fetching assigned quizzes:", error);
+        setHasQuizzes(false);
       } finally {
         setLoading(false);
       }
@@ -48,12 +57,22 @@ const Home = () => {
     fetchAssignedQuizzes();
   }, []);
 
-  const handleQuizSetChange = (event) => {
-    setSelectedQuizSet(event.target.value);
+  // Function to determine the daily quiz set based on the date
+  const getDailyQuizSet = (quizzes) => {
+    if (!quizzes || quizzes.length === 0) return '';
+    
+    // Use the day of the year to cycle through the quiz sets
+    const today = new Date();
+    const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
+    
+    // Use modulo to ensure we get a valid index in the array
+    const dailyIndex = dayOfYear % quizzes.length;
+    
+    return quizzes[dailyIndex];
   };
 
   const navigateToQuiz = () => {
-    navigate('/quiz', { state: { selectedQuizSet } });
+    navigate('/quiz', { state: { selectedQuizSet: dailyQuizSet } });
   };
 
   return (
@@ -64,42 +83,24 @@ const Home = () => {
         <hr />
         
         {loading ? (
-          <p>Loading your quizzes...</p>
+          <p>Loading your daily practice...</p>
         ) : (
           <div className='assignedQuizInfo'>
-            {assignedQuizzes.length > 0 ? (
+            {hasQuizzes ? (
               <>
-                <h2>You have {assignedQuizzes.length} quiz set(s) assigned:</h2>
-                
-                <div className="quizSetSelection">
-                  <label htmlFor="quizSetSelect">Select a quiz set to practice:</label>
-                  
-                  <select 
-                    id="quizSetSelect" 
-                    value={selectedQuizSet} 
-                    onChange={handleQuizSetChange}
-                    className="quizSetDropdown"
-                  >
-                    
-                    {assignedQuizzes.map((quiz, index) => (
-                      <option key={index} value={quiz}>
-                        {quiz}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <h2>Your daily practice is ready!</h2>
                 
                 <button 
-                  onClick={navigateToQuiz} 
-                  disabled={!selectedQuizSet}
+                  onClick={navigateToQuiz}
+                  disabled={!dailyQuizSet}
                   className="startQuizButton"
                 >
-                  Start practice
+                  Start today's practice
                 </button>
               </>
             ) : (
               <div>
-                <p>You don't have any quizzes assigned yet.</p>
+                <p>You don't have any practice assigned yet.</p>
                 <button disabled>Start practice</button>
               </div>
             )}

@@ -4,6 +4,7 @@ import "./Navbar.css";
 import { signOut } from "firebase/auth";
 import firebaseServices from "../firebase/firebaseSetup";
 import { RxHamburgerMenu } from "react-icons/rx";
+import praceTime from "../../assets/practiceTime.jpg";
 
 const Navbar = () => {
   const [showmenu, setShowmenu] = React.useState(false);
@@ -33,7 +34,8 @@ const Navbar = () => {
 
   return (
     <div className="wrapper">
-      <h2 onClick={() => handleNavigation("/")}>PracticeTime.ai</h2>
+      <img src={praceTime} onClick={() => handleNavigation("/")} alt="" />
+      
 
       <nav className={showmenu ? "menu-mobile" : "menu-web"}>
         <ul>
