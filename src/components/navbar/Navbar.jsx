@@ -34,7 +34,7 @@ const Navbar = () => {
 
   return (
     <div className="wrapper">
-      <img src={praceTime} onClick={() => handleNavigation("/")} alt="" />
+      
       
 
       <nav className={showmenu ? "menu-mobile" : "menu-web"}>
