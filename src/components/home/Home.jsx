@@ -60,7 +60,7 @@ const Home = () => {
     <div className='homeContainer'>
       <h1>The more you practice, the better you become</h1>
       <div className='quizHomeContainer'>
-        <img src={PracticeTime} alt="Practice time illustration" />
+        
         <hr />
         
         {loading ? (
