@@ -168,13 +168,8 @@ const Login = () => {
         
         
         
-        <div className="divider">
-          <span>OR</span>
-        </div>
+       
         
-        <button onClick={handleGoogleLogin} id="signInWithGoogle" disabled={loading}>
-          Sign in with Google
-        </button>
       </div>
     </div>
   );
