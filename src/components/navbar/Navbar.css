@@ -60,14 +60,14 @@
     display: none;
     flex-direction: column;
     
-    padding: 10px;
-    margin: 10px;
-    justify-content: space-around;
-    width: 30px;
-    height: 30px;
+    
+    margin: 30px;
+    justify-content: center;
+    width: 25px;
+    height: 25px;
     background: transparent;
     border: none;
-    z-index: 100;
+   
 }
 
 @media screen and (max-width: 768px) {

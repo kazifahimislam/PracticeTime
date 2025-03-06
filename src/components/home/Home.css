@@ -33,7 +33,7 @@
   }
   
   .quizHomeContainer img {
-    max-width: 100%;
+    max-width: 30%;
     height: auto;
     cursor: pointer;
     margin-bottom: 20px;
@@ -119,6 +119,7 @@
   @media (max-width: 600px) {
     .homeContainer {
       padding: 15px;
+      width: 100%;
     }
     
     .homeContainer h1 {
@@ -127,6 +128,7 @@
     
     .quizContainer {
       padding: 15px;
+      width: 100%;
     }
     
     button {

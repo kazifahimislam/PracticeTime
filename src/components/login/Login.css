@@ -3,7 +3,7 @@
   
   .loginWrapper {
     display: flex;
-    height: 100vh;
+    height: calc(100vh - 80px);
     width: 100%;
     justify-content: center;
     align-items: center;
@@ -59,7 +59,7 @@
   }
   
   .formGroup input {
-    width: 100%;
+    width: 90%;
     height: 45px;
     border: 1px solid #ddd;
     border-radius: 8px;

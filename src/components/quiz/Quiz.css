@@ -4,6 +4,7 @@
 .quizContainer {
     
     overflow-y: auto;
+    
     width: 60%;
     min-height: 550px;
     max-height: 800px;
@@ -11,13 +12,21 @@
     flex-direction: column;
     justify-content: space-between;
     
-    max-height: 600px;
+    
     margin: 0 auto;
     padding: 20px;
     background-color: #ffffff;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     font-family: 'Roboto', sans-serif;
+  }
+  .quizContainer img {
+    margin: 0 auto;
+    width: 50%;
+    
+    object-fit: contain;
+    
+    margin-bottom: 20px;
   }
   
   /* Progress Bar */
@@ -58,6 +67,7 @@
   }
   
   /* Images */
+  
   .questionImage, .defaultImage {
     width: 55%;
     max-height: 300px;
@@ -337,6 +347,7 @@
   /* Responsive Adjustments */
   @media (max-width: 768px) {
     .quizContainer {
+      
       padding: 15px;
       border-radius: 8px;
     }
