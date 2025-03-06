@@ -118,6 +118,7 @@
   /* Responsive adjustments */
   @media (max-width: 600px) {
     .homeContainer {
+      max-width: 90%;
       padding: 15px;
       width: 100%;
     }
