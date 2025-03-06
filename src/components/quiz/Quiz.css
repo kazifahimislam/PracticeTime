@@ -2,9 +2,9 @@
 
 /* Main Container */
 .quizContainer {
-    max-width: 350px;
+    
     overflow-y: auto;
-    width: 100%;
+    width: 60%;
     min-height: 550px;
     max-height: 800px;
     display: flex;

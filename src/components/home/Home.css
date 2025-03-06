@@ -1,7 +1,7 @@
 /* Quiz Home Page Styles */
 
 .homeContainer {
-    max-width: 350px;
+    width: 60%;
     margin: 0 auto;
   
     max-height: 800px;
