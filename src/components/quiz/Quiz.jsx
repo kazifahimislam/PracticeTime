@@ -273,9 +273,7 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
       <div className="quizContainer resultsContainer">
         <h1 className="resultsTitle">Quiz Results</h1>
         
-        <div className="setInfo">
-          <p>Quiz Set: {currentSet}</p>
-        </div>
+        
         
         <div className="scoreCard">
           <div className="scoreCircle">
@@ -334,9 +332,7 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
 
   return (
     <div className='quizContainer'>
-      <div className="quizHeader">
-        <h2>Quiz Set: {currentSet}</h2>
-      </div>
+     
       
       <div className="progressBarContainer">
         <div 
@@ -349,20 +345,11 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
         Question {currentQuestionIndex + 1} of {questions.length}
       </div>
       
-      {/* Display difficulty level and grade if available */}
-      {currentQuestion.difficultyLevel && (
-        <div className="questionMetadata">
-          <span className="difficultyLevel">Level: {currentQuestion.difficultyLevel}</span>
-          {currentQuestion.grade && <span className="grade">Grade: {currentQuestion.grade}</span>}
-        </div>
-      )}
       
       {/* Display question image if available */}
       {currentQuestion.questionImage ? (
         <img src={currentQuestion.questionImage} alt="Question" className="questionImage" />
-      ) : (
-        <img src={PracticeTime} alt="Quiz illustration" className="defaultImage" />
-      )}
+      ) : null}
       
       <div className="questionContainer">
         <h2 className="questionText">{currentQuestion.question}</h2>

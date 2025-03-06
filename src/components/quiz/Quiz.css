@@ -4,6 +4,8 @@
 .quizContainer {
     max-width: 800px;
     overflow-y: auto;
+    width: 100%;
+    
     max-height: 600px;
     margin: 0 auto;
     padding: 20px;
@@ -117,7 +119,7 @@
   }
   
   .fillBlankInput {
-    width: 100%;
+    width: 96%;
     padding: 15px;
     font-size: 16px;
     border: 1px solid #dee2e6;
