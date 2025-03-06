@@ -4,6 +4,7 @@ import PracticeTime from '../../assets/practiceTime.jpg';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import firebaseServices from '../firebase/firebaseSetup';
+import practiceTime from '../../assets/practiceTime.jpg';
 
 const Quiz = () => {
   const { auth, provider, db, ref, set, get, child } = firebaseServices;
@@ -332,6 +333,7 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
 
   return (
     <div className='quizContainer'>
+      <img src={practiceTime} alt="" />
      
       
       <div className="progressBarContainer">
