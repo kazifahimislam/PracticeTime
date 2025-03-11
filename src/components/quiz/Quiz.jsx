@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import './Quiz.css';
-import PracticeTime from '../../assets/practiceTime.jpg';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import firebaseServices from '../firebase/firebaseSetup';
@@ -21,6 +20,11 @@ const Quiz = () => {
   const [error, setError] = useState(null);
   const [quizCompleted, setQuizCompleted] = useState(false);
   const [quizResults, setQuizResults] = useState(null);
+  const [verifying, setVerifying] = useState(false);
+
+
+  const GEMINI_API_KEY  = import.meta.env.VITE_GEMINI_API_KEY;
+  
 
   useEffect(() => {
     const fetchQuizData = async () => {
@@ -82,66 +86,216 @@ const Quiz = () => {
     fetchQuizData();
   }, [selectedQuizSet]);
 
-  const handleNextQuestion = () => {
-    // Save the current answer to user responses
-    const currentAnswer = selectedAnswers[currentQuestionIndex];
-    const updatedResponses = [...userResponses];
-    updatedResponses[currentQuestionIndex] = {
-      questionId: questions[currentQuestionIndex].id,
-      userAnswer: currentAnswer,
-      correctAnswer: questions[currentQuestionIndex].correctAnswer,
-      isCorrect: isAnswerCorrect(currentAnswer, questions[currentQuestionIndex].correctAnswer)
+  // Enhanced normalization function
+  const normalizeAnswer = (answer) => {
+    if (answer === null || answer === undefined) return '';
+    
+    // Convert to string, trim whitespace, and convert to lowercase
+    let normalized = String(answer).trim().toLowerCase();
+    
+    // Remove extra spaces, punctuation and special characters
+    normalized = normalized.replace(/\s+/g, ' ');
+    normalized = normalized.replace(/[.,;:!?'"()\[\]{}]/g, '');
+    
+    // Handle numeric values (e.g., "1" and 1 should match)
+    if (!isNaN(normalized) && !isNaN(parseFloat(normalized))) {
+      normalized = parseFloat(normalized).toString();
+    }
+    
+    // Common word replacements for numbers
+    const numberWords = {
+      'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+      'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+      'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13', 'fourteen': '14',
+      'fifteen': '15', 'sixteen': '16', 'seventeen': '17', 'eighteen': '18', 'nineteen': '19',
+      'twenty': '20'
     };
-    setUserResponses(updatedResponses);
+    
+    // Check if the answer is a number word and replace it
+    if (numberWords[normalized]) {
+      normalized = numberWords[normalized];
+    }
+    
+    return normalized;
+  };
 
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      // Handle quiz completion
-      handleQuizComplete(updatedResponses);
+  // Enhanced fallback verification with better normalization
+  const fallbackVerification = (userAnswer, correctAnswer) => {
+    console.log("Using fallback verification method");
+    
+    // Normalize user answer
+    const normalizedUserAnswer = normalizeAnswer(userAnswer);
+    
+    // Handle different ways correctAnswer might be stored
+    if (typeof correctAnswer === 'string') {
+      return normalizedUserAnswer === normalizeAnswer(correctAnswer);
+    } else if (Array.isArray(correctAnswer)) {
+      // Check if any of the correct answers match
+      return correctAnswer.some(answer => 
+        normalizedUserAnswer === normalizeAnswer(answer)
+      );
+    } else if (correctAnswer && typeof correctAnswer === 'object' && correctAnswer.text) {
+      return normalizedUserAnswer === normalizeAnswer(correctAnswer.text);
+    }
+    
+    return false;
+  };
+
+  // Enhanced verification function with better prompt engineering and fallback handling
+  const verifyAnswerWithGemini = async (question, correctAnswer, userAnswer) => {
+    try {
+      console.log("Verifying answer with Gemini:");
+      console.log("Question:", question);
+      console.log("Correct answer:", correctAnswer);
+      console.log("User answer:", userAnswer);
+
+      // Handle empty user answers
+      if (!userAnswer || userAnswer.trim() === '') {
+        console.log("Empty user answer, marking as incorrect");
+        return false;
+      }
+
+      // Format correctAnswer for the prompt
+      let formattedCorrectAnswer = correctAnswer;
+      if (Array.isArray(correctAnswer)) {
+        formattedCorrectAnswer = correctAnswer.join(' OR ');
+      } else if (typeof correctAnswer === 'object' && correctAnswer.text) {
+        formattedCorrectAnswer = correctAnswer.text;
+      }
+
+      // Create a more structured prompt for Gemini
+      const prompt = `
+Task: Verify if the user's answer is semantically equivalent to the correct answer.
+
+Question: "${question}"
+Correct answer: "${formattedCorrectAnswer}"
+User answer: "${userAnswer}"
+
+Instructions:
+1. Compare the semantic meaning, not just exact text.
+2. Ignore case, spacing, and minor punctuation differences.
+3. Recognize numerical equivalence (e.g., "12" and "twelve").
+4. Account for synonyms and equivalent expressions.
+
+Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
+`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 20
+          }
+        })
+      });
+
+      // Check if response is valid
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Gemini API error:", errorData);
+        // Fallback to direct comparison
+        return fallbackVerification(userAnswer, correctAnswer);
+      }
+
+      const data = await response.json();
+      
+      // Extract and validate the result
+      if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+        const result = data.candidates[0].content.parts[0].text.trim().toLowerCase();
+        console.log("Gemini response:", result);
+        
+        if (result.includes('correct') && !result.includes('incorrect')) {
+          return true;
+        } else if (result.includes('incorrect')) {
+          return false;
+        } else {
+          console.log("Ambiguous Gemini response, falling back to direct comparison");
+          return fallbackVerification(userAnswer, correctAnswer);
+        }
+      } else {
+        console.error("Unexpected Gemini API response format:", data);
+        return fallbackVerification(userAnswer, correctAnswer);
+      }
+    } catch (error) {
+      console.error("Error verifying with Gemini:", error);
+      return fallbackVerification(userAnswer, correctAnswer);
     }
   };
-  // Helper function to normalize answers for comparison
-const normalizeAnswer = (answer) => {
-  if (answer === null || answer === undefined) return '';
-  
-  // Convert to string, trim whitespace, and convert to lowercase
-  let normalized = String(answer).trim().toLowerCase();
-  
-  // Remove extra spaces between words
-  normalized = normalized.replace(/\s+/g, ' ');
-  
-  // Handle numeric values (e.g., "1" and 1 should match)
-  if (!isNaN(normalized) && !isNaN(parseFloat(normalized))) {
-    normalized = parseFloat(normalized).toString();
-  }
-  
-  return normalized;
-};
 
-  // Updated isAnswerCorrect function
-const isAnswerCorrect = (userAnswer, correctAnswer) => {
-  // Normalize user answer
-  const normalizedUserAnswer = normalizeAnswer(userAnswer);
+  // Legacy answer verification function (kept for backward compatibility)
+  const isAnswerCorrect = (userAnswer, correctAnswer) => {
+    return fallbackVerification(userAnswer, correctAnswer);
+  };
+
+  const handleNextQuestion = async () => {
+    const currentAnswer = selectedAnswers[currentQuestionIndex];
+    const currentQuestion = questions[currentQuestionIndex];
+    
+    if (!currentAnswer) {
+      return; // Prevent proceeding without an answer
+    }
+    
+    // Set verifying state to show loading indicator
+    setVerifying(true);
+    
+    try {
+      // Check answer using Gemini for text answers
+      let isCorrect = false;
+      
+      if (currentQuestion.type === "FILL_IN_THE_BLANKS") {
+        console.log("Verifying fill-in-the-blanks answer");
+        
+        isCorrect = await verifyAnswerWithGemini(
+          currentQuestion.question,
+          currentQuestion.correctAnswer,
+          currentAnswer
+        );
+        
+        console.log("Final verification result:", isCorrect ? "Correct" : "Incorrect");
+      } else {
+        // For MCQ, use regular comparison
+        isCorrect = isAnswerCorrect(currentAnswer, currentQuestion.correctAnswer);
+      }
+      
+      // Save the current answer to user responses
+      const updatedResponses = [...userResponses];
+      updatedResponses[currentQuestionIndex] = {
+        questionId: currentQuestion.id,
+        userAnswer: currentAnswer,
+        correctAnswer: currentQuestion.correctAnswer,
+        isCorrect: isCorrect
+      };
+      
+      setUserResponses(updatedResponses);
   
-  // Handle different ways correctAnswer might be stored
-  if (typeof correctAnswer === 'string') {
-    return normalizedUserAnswer === normalizeAnswer(correctAnswer);
-  } else if (Array.isArray(correctAnswer)) {
-    // Check if any of the correct answers match
-    return correctAnswer.some(answer => 
-      normalizedUserAnswer === normalizeAnswer(answer)
-    );
-  } else if (correctAnswer && typeof correctAnswer === 'object' && correctAnswer.text) {
-    return normalizedUserAnswer === normalizeAnswer(correctAnswer.text);
-  }
-  
-  return false;
-};
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        // Handle quiz completion
+        handleQuizComplete(updatedResponses);
+      }
+    } catch (error) {
+      console.error("Error processing answer:", error);
+      setError("There was a problem processing your answer. Please try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
   const calculateResults = (responses) => {
-    const totalQuestions = responses.length;
-    const correctAnswers = responses.filter(response => response.isCorrect).length;
-    const score = Math.round((correctAnswers / totalQuestions) * 100);
+    // Filter out any null responses
+    const validResponses = responses.filter(response => response !== null);
+    
+    const totalQuestions = validResponses.length;
+    const correctAnswers = validResponses.filter(response => response.isCorrect).length;
+    const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
     
     let performance;
     if (score >= 90) performance = "Excellent";
@@ -154,7 +308,7 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
       correctAnswers,
       score,
       performance,
-      responses
+      responses: validResponses
     };
   };
 
@@ -181,7 +335,7 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
           correctAnswers: results.correctAnswers,
           totalQuestions: results.totalQuestions,
           selectedSet: currentSet,
-          responses: responses
+          responses: responses.filter(r => r !== null) // Only save non-null responses
         });
         
         // Remove the completed quiz set from user's available sets
@@ -274,8 +428,6 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
       <div className="quizContainer resultsContainer">
         <h1 className="resultsTitle">Quiz Results</h1>
         
-        
-        
         <div className="scoreCard">
           <div className="scoreCircle">
             <div className="scoreValue">{quizResults.score}%</div>
@@ -290,32 +442,39 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
         
         <div className="questionReview">
           <h2>Question Review</h2>
-          {quizResults.responses.map((response, index) => (
-            <div 
-              key={index} 
-              className={`reviewItem ${response.isCorrect ? 'correct' : 'incorrect'}`}
-            >
-              <div className="reviewHeader">
-                <span className="questionNumber">Question {index + 1}</span>
-                <span className={`statusBadge ${response.isCorrect ? 'correctBadge' : 'incorrectBadge'}`}>
-                  {response.isCorrect ? 'Correct' : 'Incorrect'}
-                </span>
+          {quizResults.responses.map((response, index) => {
+            // Find the corresponding question
+            const question = questions.find(q => q.id === response.questionId) || 
+                             questions[index];
+                             
+            return (
+              <div 
+                key={index} 
+                className={`reviewItem ${response.isCorrect ? 'correct' : 'incorrect'}`}
+              >
+                <div className="reviewHeader">
+                  <span className="questionNumber">Question {index + 1}</span>
+                  <span className={`statusBadge ${response.isCorrect ? 'correctBadge' : 'incorrectBadge'}`}>
+                    {response.isCorrect ? 'Correct' : 'Incorrect'}
+                  </span>
+                </div>
+                <p className="reviewQuestion">{question ? question.question : 'Question not found'}</p>
+                <div className="answerDetail">
+                  <p><strong>Your answer:</strong> {response.userAnswer || '(No answer)'}</p>
+                  <p><strong>Correct answer:</strong> {
+                    Array.isArray(response.correctAnswer) ? 
+                      response.correctAnswer.join(', ') : 
+                      (typeof response.correctAnswer === 'object' && response.correctAnswer.text) ? 
+                        response.correctAnswer.text : 
+                        response.correctAnswer
+                  }</p>
+                </div>
               </div>
-              <p className="reviewQuestion">{questions[index].question}</p>
-              <div className="answerDetail">
-                <p><strong>Your answer:</strong> {response.userAnswer || '(No answer)'}</p>
-                <p><strong>Correct answer:</strong> {
-                  typeof response.correctAnswer === 'object' 
-                    ? response.correctAnswer.text 
-                    : response.correctAnswer
-                }</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
         
         <div className="actionButtons">
-          
           <button onClick={handleBackToHome} className="homeButton">
             Back to Home
           </button>
@@ -335,7 +494,6 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
     <div className='quizContainer'>
       <img src={practiceTime} alt="" />
      
-      
       <div className="progressBarContainer">
         <div 
           className="progressBar" 
@@ -346,7 +504,6 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
       <div className='quizIndex'>
         Question {currentQuestionIndex + 1} of {questions.length}
       </div>
-      
       
       {/* Display question image if available */}
       {currentQuestion.questionImage ? (
@@ -386,10 +543,10 @@ const isAnswerCorrect = (userAnswer, correctAnswer) => {
       
       <button 
         onClick={handleNextQuestion}
-        disabled={!hasSelectedAnswer}
-        className="nextButton"
+        disabled={!hasSelectedAnswer || verifying}
+        className={`nextButton ${verifying ? 'verifying' : ''}`}
       >
-        {isLastQuestion ? 'Finish Quiz' : 'Next'}
+        {verifying ? 'Verifying...' : isLastQuestion ? 'Finish Quiz' : 'Next'}
       </button>
     </div>
   );
