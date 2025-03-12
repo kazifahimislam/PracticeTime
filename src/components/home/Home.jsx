@@ -115,7 +115,7 @@ const Home = ({ onNavigate }) => {
           src={practiceTime} 
           onClick={() => {
             if (window.appNavigate) {
-              window.appNavigate('login');
+              window.appNavigate('start');
             }
           }} 
           alt="Practice Time" 
