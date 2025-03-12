@@ -22,7 +22,7 @@ const Quiz = () => {
   const [quizResults, setQuizResults] = useState(null);
   const [verifying, setVerifying] = useState(false);
 
-
+  //gemini api key
   const GEMINI_API_KEY  = import.meta.env.VITE_GEMINI_API_KEY;
   
 
