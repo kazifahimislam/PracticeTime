@@ -1,15 +1,12 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
 import "./Navbar.css";
 import { signOut } from "firebase/auth";
 import firebaseServices from "../firebase/firebaseSetup";
 import { RxHamburgerMenu } from "react-icons/rx";
-import praceTime from "../../assets/practiceTime.jpg";
 
-const Navbar = () => {
+const Navbar = ({ onNavigate }) => {
   const [showmenu, setShowmenu] = React.useState(false);
-  const { auth, provider, db, ref, set, get, child } = firebaseServices; // Destructure Firebase services
-  const navigate = useNavigate(); // ✅ React Router navigation
+  const { auth } = firebaseServices;
 
   const handleHamburger = () => {
     setShowmenu(!showmenu);
@@ -18,28 +15,26 @@ const Navbar = () => {
   const handleLogout = async () => {
     try {
       await signOut(auth);
-      localStorage.removeItem("user"); // ✅ Clear user data from localStorage
-      navigate("/"); // Redirect to login page after logout
-      setShowmenu(false); // Close menu after logout
+      localStorage.removeItem("user");
+      onNavigate("login"); // Use onNavigate instead of useNavigate
+      setShowmenu(false);
     } catch (error) {
       console.error("Logout error:", error);
     }
   };
 
   // Function to navigate & close menu
-  const handleNavigation = (path) => {
-    navigate(path);
-    setShowmenu(false); // ✅ Close menu on click
+  const handleNavigation = (page) => {
+    onNavigate(page); // Use onNavigate prop
+    setShowmenu(false);
   };
 
   return (
     <div className="wrapper">
-      
-      
-
       <nav className={showmenu ? "menu-mobile" : "menu-web"}>
         <ul>
-        <li onClick={() => handleNavigation("/")}>Home Page</li>
+          <li onClick={() => handleNavigation("start")}>Home Page</li>
+          
           <li onClick={handleLogout}>Log out</li>
         </ul>
       </nav>
