@@ -1,13 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import firebaseServices from '../firebase/firebaseSetup';
 import './Home.css';
 import practiceTime from '../../assets/practiceTime.jpg';
 
-const Home = () => {
+const Home = ({ onNavigate }) => {
   const { db, ref, get } = firebaseServices;
-  const navigate = useNavigate();
   const [assignedQuizzes, setAssignedQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dailyQuizSet, setDailyQuizSet] = useState('');
@@ -101,13 +99,27 @@ const Home = () => {
   };
   
   const navigateToQuiz = () => {
-    navigate('/practice', { state: { selectedQuizSet: dailyQuizSet } });
+    // Store the selected quiz set in localStorage instead of router state
+    localStorage.setItem('selectedQuizSet', dailyQuizSet);
+    
+    // Use the parent component's navigation function
+    if (window.appNavigate) {
+      window.appNavigate('practice');
+    }
   };
   
   return (
     <div className='homeContainer'>
       <div className='quizHomeContainer'>
-        <img src={practiceTime} onClick={() => navigate("/")} alt="Practice Time" />
+        <img 
+          src={practiceTime} 
+          onClick={() => {
+            if (window.appNavigate) {
+              window.appNavigate('login');
+            }
+          }} 
+          alt="Practice Time" 
+        />
         <h1>The more you practice, the better you become</h1>
         <hr />
         

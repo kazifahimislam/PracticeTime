@@ -1,66 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import "./Login.css";
 import PracticeTime from "../../assets/practiceTime.jpg";
-import { signInWithPopup, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 import firebaseServices from "../firebase/firebaseSetup";
 
-const Login = () => {
-  const { auth, provider, db, ref, set, get, child } = firebaseServices;
-  const navigate = useNavigate();
+const Login = ({ onLoginSuccess }) => {
+  const { auth, db, ref, set } = firebaseServices;
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    // ✅ Check if user is already logged in
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      navigate("/start");
-    }
-  }, [navigate]);
-
-  const handleGoogleLogin = async () => {
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-
-      if (user) {
-        console.log("Logged in as:", user.displayName);
-
-        // ✅ Reference to user data in Realtime Database
-        const userRef = ref(db, `users/${user.uid}`);
-
-        // ✅ Check if user already exists before saving new data
-        get(child(ref(db), `users/${user.uid}`)).then((snapshot) => {
-          if (!snapshot.exists()) {
-            set(userRef, {
-              name: user.displayName,
-              email: user.email,
-              photoURL: user.photoURL,
-              uid: user.uid,
-              loginDate: new Date().toISOString(),
-            });
-          }
-        });
-
-        // ✅ Save user login status in localStorage
-        localStorage.setItem("user", JSON.stringify({
-          name: user.displayName,
-          email: user.email,
-          photoURL: user.photoURL,
-          uid: user.uid
-        }));
-
-        navigate("/start"); // Redirect to start
-      }
-    } catch (error) {
-      console.error("Error during Google login", error);
-      setError("Failed to sign in with Google. Please try again.");
-    }
-  };
 
   const handleUsernamePasswordAuth = async (e) => {
     e.preventDefault();
@@ -108,7 +58,8 @@ const Login = () => {
           uid: user.uid
         }));
         
-        navigate("/start");
+        // Use the onLoginSuccess prop instead of navigate
+        onLoginSuccess();
       }
     } catch (error) {
       console.error("Authentication error:", error);
@@ -166,9 +117,6 @@ const Login = () => {
           </button>
         </form>
         
-        
-        
-       
         
       </div>
     </div>
