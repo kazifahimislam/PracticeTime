@@ -10,9 +10,9 @@ const App = () => {
   const router = createBrowserRouter([
     { path : "/" ,
       element :<Login /> },
-    {path : "/home",
+    {path : "/start",
        element : <><Navbar/><ProtectedRoute><Home /></ProtectedRoute></>},
-       {path : "/quiz",
+       {path : "/practice",
         element : <><Navbar/><ProtectedRoute><Quiz /></ProtectedRoute></>}
   ])
   
