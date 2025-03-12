@@ -18,7 +18,7 @@ const Login = () => {
     // ✅ Check if user is already logged in
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
-      navigate("/home");
+      navigate("/start");
     }
   }, [navigate]);
 
@@ -54,7 +54,7 @@ const Login = () => {
           uid: user.uid
         }));
 
-        navigate("/home"); // Redirect to Home
+        navigate("/start"); // Redirect to start
       }
     } catch (error) {
       console.error("Error during Google login", error);
@@ -108,7 +108,7 @@ const Login = () => {
           uid: user.uid
         }));
         
-        navigate("/home");
+        navigate("/start");
       }
     } catch (error) {
       console.error("Authentication error:", error);

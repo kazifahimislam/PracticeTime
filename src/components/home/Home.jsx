@@ -101,7 +101,7 @@ const Home = () => {
   };
   
   const navigateToQuiz = () => {
-    navigate('/quiz', { state: { selectedQuizSet: dailyQuizSet } });
+    navigate('/practice', { state: { selectedQuizSet: dailyQuizSet } });
   };
   
   return (
