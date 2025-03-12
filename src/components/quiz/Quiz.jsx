@@ -7,9 +7,9 @@ import practiceTime from '../../assets/practiceTime.jpg';
 
 const Quiz = () => {
   const { auth, provider, db, ref, set, get, child } = firebaseServices;
-  const location = useLocation();
-  const navigate = useNavigate();
-  const selectedQuizSet = location.state?.selectedQuizSet;
+  
+  // Get selectedQuizSet from localStorage instead of router state
+  const [selectedQuizSet, setSelectedQuizSet] = useState(null);
   
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
@@ -22,24 +22,32 @@ const Quiz = () => {
   const [quizResults, setQuizResults] = useState(null);
   const [verifying, setVerifying] = useState(false);
 
-
-  const GEMINI_API_KEY  = import.meta.env.VITE_GEMINI_API_KEY;
+  //gemini api key
+  const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
   
+  // Get quiz set from localStorage on component mount
+  useEffect(() => {
+    const storedQuizSet = localStorage.getItem('selectedQuizSet');
+    if (storedQuizSet) {
+      setSelectedQuizSet(storedQuizSet);
+    } else {
+      setError("No quiz set selected");
+    }
+  }, []);
 
   useEffect(() => {
     const fetchQuizData = async () => {
       try {
+        if (!selectedQuizSet) {
+          return; // Wait until selectedQuizSet is loaded
+        }
+        
         setLoading(true);
         const auth = getAuth();
         const user = auth.currentUser;
         
         if (!user) {
           setError("User not authenticated");
-          return;
-        }
-        
-        if (!selectedQuizSet) {
-          setError("No quiz set selected");
           return;
         }
         
@@ -84,7 +92,7 @@ const Quiz = () => {
     };
 
     fetchQuizData();
-  }, [selectedQuizSet]);
+  }, [selectedQuizSet, db]);
 
   // Enhanced normalization function
   const normalizeAnswer = (answer) => {
@@ -385,7 +393,10 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
   };
 
   const handleBackToHome = () => {
-    navigate('/');
+    // Use global navigate function from window object
+    if (window.appNavigate) {
+      window.appNavigate('start');
+    }
   };
 
   if (loading) {
