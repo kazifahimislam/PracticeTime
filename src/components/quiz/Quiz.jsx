@@ -609,13 +609,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       </div>
       
       <div className="buttonContainer">
-        <button 
-          onClick={handleNextQuestion}
-          disabled={!isTriviaQuestion && !hasSelectedAnswer && verifying}
-          className={`nextButton ${verifying ? 'verifying' : ''}`}
-        >
-          {verifying ? 'Verifying...' : isLastQuestion ? 'Complete PracticeSheet' : 'Next'}
-        </button>
+        
         
         {/* Skip button - only show for non-trivia questions */}
         {!isTriviaQuestion && (
@@ -627,6 +621,14 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
             Skip
           </button>
         )}
+
+<button 
+          onClick={handleNextQuestion}
+          disabled={!isTriviaQuestion && !hasSelectedAnswer && verifying}
+          className={`nextButton ${verifying ? 'verifying' : ''}`}
+        >
+          {verifying ? 'Verifying...' : isLastQuestion ? 'Complete PracticeSheet' : 'Next'}
+        </button>
       </div>
     </div>
   );
