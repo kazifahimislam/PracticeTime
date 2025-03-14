@@ -141,8 +141,10 @@ const Home = ({ onNavigate }) => {
               </>
             ) : (
               <div className="noQuizzesMessage">
-                <p>You don't have any practice assigned yet.</p>
-                <button disabled className="disabledButton">Start practice</button>
+                <p>You don't have any PracticeSheet assigned yet
+                .</p>
+                <button disabled className="disabledButton">Start PracticeSheet
+                </button>
               </div>
             )}
           </div>
