@@ -354,49 +354,58 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
 
   const handleQuizComplete = async (responses) => {
     try {
-      // Calculate the results
-      const results = calculateResults(responses);
-      setQuizResults(results);
-      setQuizCompleted(true);
-      
-      // Save the user's responses to Firebase
-      const auth = getAuth();
-      const user = auth.currentUser;
-      
-      if (user && currentSet) {
-        // Reference to the user's quiz sets
-        const userQuizSetsRef = ref(db, `users/${user.uid}/assignedSets`);
-        
-        // Save quiz results
-        const resultsRef = ref(db, `users/${user.uid}/quizResults/${currentSet}`);
-        await set(resultsRef, {
-          completedAt: new Date().toISOString(),
-          score: results.score,
-          correctAnswers: results.correctAnswers,
-          totalQuestions: results.totalQuestions,
-          selectedSet: currentSet,
-          responses: responses.filter(r => r !== null) // Only save non-null responses
-        });
-        
-        // Remove the completed quiz set from user's available sets
-        // First, get the current available sets
-        const availableSetsSnapshot = await get(userQuizSetsRef);
-        if (availableSetsSnapshot.exists()) {
-          const availableSets = availableSetsSnapshot.val();
-          
-          // Remove the current set from available sets
-          delete availableSets[currentSet];
-          
-          // Update the available sets
-          await set(userQuizSetsRef, availableSets);
+        // Calculate the results
+        const results = calculateResults(responses);
+        setQuizResults(results);
+        setQuizCompleted(true);
+
+        // Save the user's responses to Firebase
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        if (user && currentSet) {
+            // Reference to the user's quiz sets
+            const userQuizSetsRef = ref(db, `users/${user.uid}/assignedSets`);
+
+            // Ensure responses do not contain undefined values
+            const filteredResponses = responses
+                .filter(r => r !== null) // Remove null responses
+                .map(r => ({
+                    ...r,
+                    correctAnswer: r.correctAnswer ?? null, // Replace undefined with null
+                    selectedAnswer: r.selectedAnswer ?? null // Replace undefined with null
+                }));
+
+            // Save quiz results
+            const resultsRef = ref(db, `users/${user.uid}/quizResults/${currentSet}`);
+            await set(resultsRef, {
+                completedAt: new Date().toISOString(),
+                score: results.score,
+                correctAnswers: results.correctAnswers,
+                totalQuestions: results.totalQuestions,
+                selectedSet: currentSet,
+                responses: filteredResponses
+            });
+
+            // Remove the completed quiz set from user's available sets
+            const availableSetsSnapshot = await get(userQuizSetsRef);
+            if (availableSetsSnapshot.exists()) {
+                const availableSets = availableSetsSnapshot.val();
+
+                // Remove the current set from available sets
+                delete availableSets[currentSet];
+
+                // Update the available sets
+                await set(userQuizSetsRef, availableSets);
+            }
+
+            console.log("Quiz completed, results saved, and set removed!", results);
         }
-        
-        console.log("Quiz completed, results saved, and set removed!", results);
-      }
     } catch (error) {
-      console.error("Error saving quiz results and removing set:", error);
+        console.error("Error saving quiz results and removing set:", error);
     }
-  };
+};
+
 
   const handleAnswerSelect = (option) => {
     const currentQuestion = questions[currentQuestionIndex];
@@ -415,13 +424,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       [currentQuestionIndex]: event.target.value
     });
   };
-  const handleRetakeQuiz = () => {
-    setQuizCompleted(false);
-    setCurrentQuestionIndex(0);
-    setSelectedAnswers({});
-    setUserResponses(new Array(questions.length).fill(null));
-    setQuizResults(null);
-  };
+  
 
   const handleBackToHome = () => {
     // Use global navigate function from window object
