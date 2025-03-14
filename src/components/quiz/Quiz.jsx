@@ -246,8 +246,8 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
     const currentAnswer = selectedAnswers[currentQuestionIndex];
     const currentQuestion = questions[currentQuestionIndex];
     
-    if (!currentAnswer) {
-      return; // Prevent proceeding without an answer
+    if (!currentAnswer && currentQuestion.type !== "TRIVIA") {
+      return; // Prevent proceeding without an answer for non-trivia questions
     }
     
     // Set verifying state to show loading indicator
@@ -257,7 +257,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       // Check answer using Gemini for text answers
       let isCorrect = false;
       
-      if (currentQuestion.type === "FILL_IN_THE_BLANKS") {
+      if (currentQuestion.type === "FILL_IN_THE_BLANKS" && currentAnswer) {
         console.log("Verifying fill-in-the-blanks answer");
         
         isCorrect = await verifyAnswerWithGemini(
@@ -267,18 +267,22 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         );
         
         console.log("Final verification result:", isCorrect ? "Correct" : "Incorrect");
-      } else {
+      } else if (currentQuestion.type === "MCQ" && currentAnswer) {
         // For MCQ, use regular comparison
         isCorrect = isAnswerCorrect(currentAnswer, currentQuestion.correctAnswer);
+      } else if (currentQuestion.type === "TRIVIA") {
+        // Trivia questions are just for information, no correct/incorrect
+        isCorrect = null;
       }
       
       // Save the current answer to user responses
       const updatedResponses = [...userResponses];
       updatedResponses[currentQuestionIndex] = {
         questionId: currentQuestion.id,
-        userAnswer: currentAnswer,
+        userAnswer: currentAnswer || "(Skipped)",
         correctAnswer: currentQuestion.correctAnswer,
-        isCorrect: isCorrect
+        isCorrect: isCorrect,
+        type: currentQuestion.type
       };
       
       setUserResponses(updatedResponses);
@@ -297,10 +301,38 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
     }
   };
 
-  const calculateResults = (responses) => {
-    // Filter out any null responses
-    const validResponses = responses.filter(response => response !== null);
+  const handleSkipQuestion = () => {
+    const currentQuestion = questions[currentQuestionIndex];
     
+    // Save the skipped question response
+    const updatedResponses = [...userResponses];
+    updatedResponses[currentQuestionIndex] = {
+      questionId: currentQuestion.id,
+      userAnswer: "(Skipped)",
+      correctAnswer: currentQuestion.correctAnswer,
+      isCorrect: false,
+      skipped: true,
+      type: currentQuestion.type
+    };
+    
+    setUserResponses(updatedResponses);
+    
+    // Move to the next question or complete the quiz if it's the last question
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      // Handle quiz completion
+      handleQuizComplete(updatedResponses);
+    }
+  };
+
+  const calculateResults = (responses) => {
+    // Filter out any null responses and trivia questions
+    const validResponses = responses.filter(response => 
+      response !== null && response.type !== "TRIVIA"
+    );
+    
+    // Count only non-trivia questions for scoring
     const totalQuestions = validResponses.length;
     const correctAnswers = validResponses.filter(response => response.isCorrect).length;
     const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
@@ -316,7 +348,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       correctAnswers,
       score,
       performance,
-      responses: validResponses
+      responses: responses.filter(r => r !== null) // Include all non-null responses including trivia
     };
   };
 
@@ -383,7 +415,6 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       [currentQuestionIndex]: event.target.value
     });
   };
-
   const handleRetakeQuiz = () => {
     setQuizCompleted(false);
     setCurrentQuestionIndex(0);
@@ -416,7 +447,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         <div className="errorContainer">
           <p className="errorMessage">{error}</p>
           <button onClick={handleBackToHome} className="retryButton">
-            Hurray, Practice for today is Completed
+            Hurray, Practice for today is Completed
           </button>
         </div>
       </div>
@@ -428,7 +459,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       <div className="quizContainer">
         <p className="noQuestionsMessage">No questions found for this quiz set.</p>
         <button onClick={handleBackToHome} className="retryButton">
-          Hurray, Practice for today is Completed
+          Hurray, Practice for today is Completed
         </button>
       </div>
     );
@@ -457,16 +488,21 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
             // Find the corresponding question
             const question = questions.find(q => q.id === response.questionId) || 
                              questions[index];
+            
+            // Skip showing trivia questions in review
+            if (response.type === "TRIVIA") {
+              return null;
+            }
                              
             return (
               <div 
                 key={index} 
-                className={`reviewItem ${response.isCorrect ? 'correct' : 'incorrect'}`}
+                className={`reviewItem ${response.skipped ? 'skipped' : (response.isCorrect ? 'correct' : 'incorrect')}`}
               >
                 <div className="reviewHeader">
                   <span className="questionNumber">Question {index + 1}</span>
-                  <span className={`statusBadge ${response.isCorrect ? 'correctBadge' : 'incorrectBadge'}`}>
-                    {response.isCorrect ? 'Correct' : 'Incorrect'}
+                  <span className={`statusBadge ${response.skipped ? 'skippedBadge' : (response.isCorrect ? 'correctBadge' : 'incorrectBadge')}`}>
+                    {response.skipped ? 'Skipped' : (response.isCorrect ? 'Correct' : 'Incorrect')}
                   </span>
                 </div>
                 <p className="reviewQuestion">{question ? question.question : 'Question not found'}</p>
@@ -487,7 +523,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         
         <div className="actionButtons">
           <button onClick={handleBackToHome} className="homeButton">
-            Hurray, Practice for today is Completed
+            Hurray, Practice for today is Completed
           </button>
         </div>
       </div>
@@ -497,6 +533,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
   const currentQuestion = questions[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const hasSelectedAnswer = selectedAnswers[currentQuestionIndex] !== undefined;
+  const isTriviaQuestion = currentQuestion.type === "TRIVIA";
   
   // Calculate progress percentage
   const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
@@ -522,7 +559,11 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       ) : null}
       
       <div className="questionContainer">
-        <h2 className="questionText">{currentQuestion.question}</h2>
+        <h2 className="questionText">
+          {/* Display question type as a badge for trivia */}
+          {isTriviaQuestion && <span className="triviaTag">Trivia</span>}
+          {currentQuestion.question}
+        </h2>
         
         {currentQuestion.type === "FILL_IN_THE_BLANKS" ? (
           <div className="fillBlankContainer">
@@ -534,31 +575,56 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
               className="fillBlankInput"
             />
           </div>
-        ) : (
+        ) : currentQuestion.type === "MCQ" ? (
           <ul className="optionsList">
-            {currentQuestion.options && currentQuestion.options.map((option, index) => (
-              <li 
-                key={index}
-                className={`optionItem ${selectedAnswers[currentQuestionIndex] === option.text ? 'selected' : ''}`}
-                onClick={() => handleAnswerSelect(option.text)}
-              >
-                {option.image && (
-                  <img src={option.image} alt={`Option ${index + 1}`} className="optionImage" />
-                )}
-                <span className="optionText">{option.text}</span>
-              </li>
-            ))}
+            {/* Only display options that exist */}
+            {currentQuestion.options && currentQuestion.options
+              .filter(option => option && option.text) // Only include valid options
+              .map((option, index) => (
+                <li 
+                  key={index}
+                  className={`optionItem ${selectedAnswers[currentQuestionIndex] === option.text ? 'selected' : ''}`}
+                  onClick={() => handleAnswerSelect(option.text)}
+                >
+                  {option.image && (
+                    <img src={option.image} alt={`Option ${index + 1}`} className="optionImage" />
+                  )}
+                  <span className="optionText">{option.text}</span>
+                </li>
+              ))}
           </ul>
+        ) : (
+          // Trivia display - just show the information
+          <div className="triviaContainer">
+            {currentQuestion.content && (
+              <div className="triviaContent">
+                {currentQuestion.content}
+              </div>
+            )}
+          </div>
         )}
       </div>
       
-      <button 
-        onClick={handleNextQuestion}
-        disabled={!hasSelectedAnswer || verifying}
-        className={`nextButton ${verifying ? 'verifying' : ''}`}
-      >
-        {verifying ? 'Verifying...' : isLastQuestion ? 'Complete PracticeSheet' : 'Next'}
-      </button>
+      <div className="buttonContainer">
+        <button 
+          onClick={handleNextQuestion}
+          disabled={!isTriviaQuestion && !hasSelectedAnswer && verifying}
+          className={`nextButton ${verifying ? 'verifying' : ''}`}
+        >
+          {verifying ? 'Verifying...' : isLastQuestion ? 'Complete PracticeSheet' : 'Next'}
+        </button>
+        
+        {/* Skip button - only show for non-trivia questions */}
+        {!isTriviaQuestion && (
+          <button 
+            onClick={handleSkipQuestion}
+            className="skipButton"
+            disabled={verifying}
+          >
+            Skip
+          </button>
+        )}
+      </div>
     </div>
   );
 };
