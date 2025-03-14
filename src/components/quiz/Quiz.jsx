@@ -416,7 +416,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         <div className="errorContainer">
           <p className="errorMessage">{error}</p>
           <button onClick={handleBackToHome} className="retryButton">
-            Back to Home
+            Hurray, Practice for today is Completed
           </button>
         </div>
       </div>
@@ -428,7 +428,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       <div className="quizContainer">
         <p className="noQuestionsMessage">No questions found for this quiz set.</p>
         <button onClick={handleBackToHome} className="retryButton">
-          Back to Home
+          Hurray, Practice for today is Completed
         </button>
       </div>
     );
@@ -487,7 +487,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         
         <div className="actionButtons">
           <button onClick={handleBackToHome} className="homeButton">
-            Back to Home
+            Hurray, Practice for today is Completed
           </button>
         </div>
       </div>
@@ -557,7 +557,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         disabled={!hasSelectedAnswer || verifying}
         className={`nextButton ${verifying ? 'verifying' : ''}`}
       >
-        {verifying ? 'Verifying...' : isLastQuestion ? 'Finish Quiz' : 'Next'}
+        {verifying ? 'Verifying...' : isLastQuestion ? 'Complete PracticeSheet' : 'Next'}
       </button>
     </div>
   );
