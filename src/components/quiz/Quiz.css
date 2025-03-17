@@ -76,7 +76,7 @@
   
  .quizContainer .questionImage {
    
-    width: 100%;
+    width: 60%;
     object-fit: contain;
     border-radius: 8px;
     
