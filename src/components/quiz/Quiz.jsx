@@ -36,60 +36,76 @@ const Quiz = () => {
   }, []);
 
   useEffect(() => {
-    const fetchQuizData = async () => {
-      try {
-        if (!selectedQuizSet) {
-          return; // Wait until selectedQuizSet is loaded
-        }
-        
-        setLoading(true);
-        const auth = getAuth();
-        const user = auth.currentUser;
-        
-        if (!user) {
-          setError("User not authenticated");
-          return;
-        }
-        
-        // Set the current quiz set
-        setCurrentSet(selectedQuizSet);
-        
-        // Fetch question IDs for this specific set
-        const setRef = ref(db, `attachedQuestionSets/${selectedQuizSet}`);
-        const setSnapshot = await get(setRef);
-        
-        if (setSnapshot.exists()) {
-          const setData = setSnapshot.val();
-          // Extract question IDs from the set data
-          const questionIds = Object.keys(setData);
-          
-          // Fetch each question
-          const questionPromises = questionIds.map(id => 
-            get(ref(db, `questions/${id}`))
-          );
-          
-          const questionSnapshots = await Promise.all(questionPromises);
-          const loadedQuestions = questionSnapshots
-            .filter(snap => snap.exists())
-            .map(snap => ({
-              id: snap.key,
-              ...snap.val()
-            }));
-          
-          setQuestions(loadedQuestions);
-          
-          // Initialize empty user responses array
-          setUserResponses(new Array(loadedQuestions.length).fill(null));
-        } else {
-          setError(`No questions found in set: ${selectedQuizSet}`);
-        }
-      } catch (error) {
-        console.error("Error fetching quiz data:", error);
-        setError(`Error loading quiz: ${error.message}`);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // In your fetchQuizData function, modify it to get the order field:
+
+const fetchQuizData = async () => {
+  try {
+    if (!selectedQuizSet) {
+      return; // Wait until selectedQuizSet is loaded
+    }
+    
+    setLoading(true);
+    const auth = getAuth();
+    const user = auth.currentUser;
+    
+    if (!user) {
+      setError("User not authenticated");
+      return;
+    }
+    
+    // Set the current quiz set
+    setCurrentSet(selectedQuizSet);
+    
+    // Fetch question IDs for this specific set
+    const setRef = ref(db, `attachedQuestionSets/${selectedQuizSet}`);
+    const setSnapshot = await get(setRef);
+    
+    if (setSnapshot.exists()) {
+      const setData = setSnapshot.val();
+      // Extract question IDs from the set data
+      const questionIds = Object.keys(setData);
+      
+      // Fetch each question with their order information
+      const questionPromises = questionIds.map(id => 
+        get(ref(db, `questions/${id}`))
+          .then(snap => {
+            // Get the order from the set data
+            const order = setData[id]?.order || 0;
+            
+            return {
+              snapshot: snap,
+              order: order,
+              id: id
+            };
+          })
+      );
+      
+      const questionResults = await Promise.all(questionPromises);
+      
+      // Filter out questions that don't exist and sort by order
+      const loadedQuestions = questionResults
+        .filter(result => result.snapshot.exists())
+        .map(result => ({
+          id: result.id,
+          order: result.order,
+          ...result.snapshot.val()
+        }))
+        .sort((a, b) => a.order - b.order); // Sort by the order field
+      
+      setQuestions(loadedQuestions);
+      
+      // Initialize empty user responses array
+      setUserResponses(new Array(loadedQuestions.length).fill(null));
+    } else {
+      setError(`No questions found in set: ${selectedQuizSet}`);
+    }
+  } catch (error) {
+    console.error("Error fetching quiz data:", error);
+    setError(`Error loading quiz: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
     fetchQuizData();
   }, [selectedQuizSet, db]);
