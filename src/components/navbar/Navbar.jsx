@@ -33,6 +33,8 @@ const Navbar = ({ onNavigate }) => {
     <div className="wrapper">
       <nav className={showmenu ? "menu-mobile" : "menu-web"}>
         <ul>
+
+        <li onClick={() => handleNavigation("progress")}>Progress</li>
           <li onClick={() => handleNavigation("start")}>Home Page</li>
           
           <li onClick={handleLogout}>Log out</li>
