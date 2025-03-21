@@ -3,6 +3,7 @@ import Quiz from './components/quiz/Quiz';
 import Login from './components/login/Login';
 import Home from './components/home/Home';
 import Navbar from './components/navbar/Navbar';
+import Progress from './components/progress/Progress';
 
 const App = () => {
   // Check authentication status
@@ -48,6 +49,9 @@ const App = () => {
         return <Home />;
       case "practice":
         return <Quiz />;
+
+      case "progress":
+        return <Progress />;
       case "login":
       default:
         return <Login onLoginSuccess={() => navigate('start')} />;
