@@ -205,13 +205,13 @@ const Progress = () => {
     <div className="progress-container">
       <h1>Your Learning Progress</h1>
       
-      {/* User Info */}
+      {/* User Info
       {userData && (
         <div className="user-info">
           <p><strong>Account Created:</strong> {formatDate(userData.createdAt)}</p>
           <p><strong>Email:</strong> {userData.email.replace(/@gmail\.com$/, "")}</p>
         </div>
-      )}
+      )} */}
       
       {/* Overall Progress */}
       <div className="progress-section">
@@ -275,7 +275,7 @@ const Progress = () => {
           <table className="results-table">
             <thead>
               <tr>
-                <th>Quiz Set</th>
+                
                 <th>Completed</th>
                 <th>Score</th>
                 <th>Correct</th>
@@ -285,7 +285,7 @@ const Progress = () => {
             <tbody>
               {Object.entries(userData.quizResults).map(([quizId, quiz]) => (
                 <tr key={quizId}>
-                  <td>{quiz.selectedSet || quizId}</td>
+                  
                   <td>{formatDate(quiz.completedAt)}</td>
                   <td>{quiz.score || 'N/A'}</td>
                   <td>{quiz.correctAnswers || 0}</td>
