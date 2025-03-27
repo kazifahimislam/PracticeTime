@@ -4,13 +4,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getAuth } from 'firebase/auth';
 import firebaseServices from '../firebase/firebaseSetup';
 import practiceTime from '../../assets/practiceTime.jpg';
+import parse from 'html-react-parser';
 
 const Quiz = () => {
   const { auth, provider, db, ref, set, get, child } = firebaseServices;
-  
+
   // Get selectedQuizSet from localStorage instead of router state
   const [selectedQuizSet, setSelectedQuizSet] = useState(null);
-  
+
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -24,7 +25,7 @@ const Quiz = () => {
 
   //gemini api key
   const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
-  
+
   // Get quiz set from localStorage on component mount
   useEffect(() => {
     const storedQuizSet = localStorage.getItem('selectedQuizSet');
@@ -38,94 +39,96 @@ const Quiz = () => {
   useEffect(() => {
     // In your fetchQuizData function, modify it to get the order field:
 
-const fetchQuizData = async () => {
-  try {
-    if (!selectedQuizSet) {
-      return; // Wait until selectedQuizSet is loaded
-    }
-    
-    setLoading(true);
-    const auth = getAuth();
-    const user = auth.currentUser;
-    
-    if (!user) {
-      setError("User not authenticated");
-      return;
-    }
-    
-    // Set the current quiz set
-    setCurrentSet(selectedQuizSet);
-    
-    // Fetch question IDs for this specific set
-    const setRef = ref(db, `attachedQuestionSets/${selectedQuizSet}`);
-    const setSnapshot = await get(setRef);
-    
-    if (setSnapshot.exists()) {
-      const setData = setSnapshot.val();
-      // Extract question IDs from the set data
-      const questionIds = Object.keys(setData);
-      
-      // Fetch each question with their order information
-      const questionPromises = questionIds.map(id => 
-        get(ref(db, `questions/${id}`))
-          .then(snap => {
-            // Get the order from the set data
-            const order = setData[id]?.order || 0;
-            
-            return {
-              snapshot: snap,
-              order: order,
-              id: id
-            };
-          })
-      );
-      
-      const questionResults = await Promise.all(questionPromises);
-      
-      // Filter out questions that don't exist and sort by order
-      const loadedQuestions = questionResults
-        .filter(result => result.snapshot.exists())
-        .map(result => ({
-          id: result.id,
-          order: result.order,
-          ...result.snapshot.val()
-        }))
-        .sort((a, b) => a.order - b.order); // Sort by the order field
-      
-      setQuestions(loadedQuestions);
-      
-      // Initialize empty user responses array
-      setUserResponses(new Array(loadedQuestions.length).fill(null));
-    } else {
-      setError(`No questions found in set: ${selectedQuizSet}`);
-    }
-  } catch (error) {
-    console.error("Error fetching quiz data:", error);
-    setError(`Error loading quiz: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+    const fetchQuizData = async () => {
+      try {
+        if (!selectedQuizSet) {
+          return; // Wait until selectedQuizSet is loaded
+        }
+
+        setLoading(true);
+        const auth = getAuth();
+        const user = auth.currentUser;
+
+        if (!user) {
+          setError("User not authenticated");
+          return;
+        }
+
+        // Set the current quiz set
+        setCurrentSet(selectedQuizSet);
+
+        // Fetch question IDs for this specific set
+        const setRef = ref(db, `attachedQuestionSets/${selectedQuizSet}`);
+        const setSnapshot = await get(setRef);
+
+        if (setSnapshot.exists()) {
+          const setData = setSnapshot.val();
+          // Extract question IDs from the set data
+          const questionIds = Object.keys(setData);
+
+          // Fetch each question with their order information
+          const questionPromises = questionIds.map(id =>
+            get(ref(db, `questions/${id}`))
+              .then(snap => {
+                // Get the order from the set data
+                const order = setData[id]?.order || 0;
+
+                return {
+                  snapshot: snap,
+                  order: order,
+                  id: id
+                };
+              })
+          );
+
+          const questionResults = await Promise.all(questionPromises);
+
+          // Filter out questions that don't exist and sort by order
+          const loadedQuestions = questionResults
+            .filter(result => result.snapshot.exists())
+            .map(result => ({
+              id: result.id,
+              order: result.order,
+              ...result.snapshot.val()
+            }))
+            .sort((a, b) => a.order - b.order); // Sort by the order field
+
+          setQuestions(loadedQuestions);
+
+          // Initialize empty user responses array
+          setUserResponses(new Array(loadedQuestions.length).fill(null));
+        } else {
+          setError(`No questions found in set: ${selectedQuizSet}`);
+        }
+      } catch (error) {
+        console.error("Error fetching quiz data:", error);
+        setError(`Error loading quiz: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
 
     fetchQuizData();
   }, [selectedQuizSet, db]);
 
+  
+
   // Enhanced normalization function
   const normalizeAnswer = (answer) => {
     if (answer === null || answer === undefined) return '';
-    
+
     // Convert to string, trim whitespace, and convert to lowercase
     let normalized = String(answer).trim().toLowerCase();
-    
+
     // Remove extra spaces, punctuation and special characters
     normalized = normalized.replace(/\s+/g, ' ');
     normalized = normalized.replace(/[.,;:!?'"()\[\]{}]/g, '');
-    
+
     // Handle numeric values (e.g., "1" and 1 should match)
     if (!isNaN(normalized) && !isNaN(parseFloat(normalized))) {
       normalized = parseFloat(normalized).toString();
     }
-    
+
     // Common word replacements for numbers
     const numberWords = {
       'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
@@ -134,34 +137,34 @@ const fetchQuizData = async () => {
       'fifteen': '15', 'sixteen': '16', 'seventeen': '17', 'eighteen': '18', 'nineteen': '19',
       'twenty': '20'
     };
-    
+
     // Check if the answer is a number word and replace it
     if (numberWords[normalized]) {
       normalized = numberWords[normalized];
     }
-    
+
     return normalized;
   };
 
   // Enhanced fallback verification with better normalization
   const fallbackVerification = (userAnswer, correctAnswer) => {
     console.log("Using fallback verification method");
-    
+
     // Normalize user answer
     const normalizedUserAnswer = normalizeAnswer(userAnswer);
-    
+
     // Handle different ways correctAnswer might be stored
     if (typeof correctAnswer === 'string') {
       return normalizedUserAnswer === normalizeAnswer(correctAnswer);
     } else if (Array.isArray(correctAnswer)) {
       // Check if any of the correct answers match
-      return correctAnswer.some(answer => 
+      return correctAnswer.some(answer =>
         normalizedUserAnswer === normalizeAnswer(answer)
       );
     } else if (correctAnswer && typeof correctAnswer === 'object' && correctAnswer.text) {
       return normalizedUserAnswer === normalizeAnswer(correctAnswer.text);
     }
-    
+
     return false;
   };
 
@@ -229,12 +232,12 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       }
 
       const data = await response.json();
-      
+
       // Extract and validate the result
       if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
         const result = data.candidates[0].content.parts[0].text.trim().toLowerCase();
         console.log("Gemini response:", result);
-        
+
         if (result.includes('correct') && !result.includes('incorrect')) {
           return true;
         } else if (result.includes('incorrect')) {
@@ -261,27 +264,27 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
   const handleNextQuestion = async () => {
     const currentAnswer = selectedAnswers[currentQuestionIndex];
     const currentQuestion = questions[currentQuestionIndex];
-    
+
     if (!currentAnswer && currentQuestion.type !== "TRIVIA") {
       return; // Prevent proceeding without an answer for non-trivia questions
     }
-    
+
     // Set verifying state to show loading indicator
     setVerifying(true);
-    
+
     try {
       // Check answer using Gemini for text answers
       let isCorrect = false;
-      
+
       if (currentQuestion.type === "FILL_IN_THE_BLANKS" && currentAnswer) {
         console.log("Verifying fill-in-the-blanks answer");
-        
+
         isCorrect = await verifyAnswerWithGemini(
           currentQuestion.question,
           currentQuestion.correctAnswer,
           currentAnswer
         );
-        
+
         console.log("Final verification result:", isCorrect ? "Correct" : "Incorrect");
       } else if (currentQuestion.type === "MCQ" && currentAnswer) {
         // For MCQ, use regular comparison
@@ -290,7 +293,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         // Trivia questions are just for information, no correct/incorrect
         isCorrect = null;
       }
-      
+
       // Save the current answer to user responses
       const updatedResponses = [...userResponses];
       updatedResponses[currentQuestionIndex] = {
@@ -300,9 +303,9 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
         isCorrect: isCorrect,
         type: currentQuestion.type
       };
-      
+
       setUserResponses(updatedResponses);
-  
+
       if (currentQuestionIndex < questions.length - 1) {
         setCurrentQuestionIndex(currentQuestionIndex + 1);
       } else {
@@ -319,7 +322,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
 
   const handleSkipQuestion = () => {
     const currentQuestion = questions[currentQuestionIndex];
-    
+
     // Save the skipped question response
     const updatedResponses = [...userResponses];
     updatedResponses[currentQuestionIndex] = {
@@ -330,9 +333,9 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       skipped: true,
       type: currentQuestion.type
     };
-    
+
     setUserResponses(updatedResponses);
-    
+
     // Move to the next question or complete the quiz if it's the last question
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
@@ -344,21 +347,21 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
 
   const calculateResults = (responses) => {
     // Filter out any null responses and trivia questions
-    const validResponses = responses.filter(response => 
+    const validResponses = responses.filter(response =>
       response !== null && response.type !== "TRIVIA"
     );
-    
+
     // Count only non-trivia questions for scoring
     const totalQuestions = validResponses.length;
     const correctAnswers = validResponses.filter(response => response.isCorrect).length;
     const score = totalQuestions > 0 ? Math.round((correctAnswers / totalQuestions) * 100) : 0;
-    
+
     let performance;
     if (score >= 90) performance = "Excellent";
     else if (score >= 75) performance = "Good";
     else if (score >= 60) performance = "Satisfactory";
     else performance = "Needs Improvement";
-    
+
     return {
       totalQuestions,
       correctAnswers,
@@ -370,62 +373,62 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
 
   const handleQuizComplete = async (responses) => {
     try {
-        // Calculate the results
-        const results = calculateResults(responses);
-        setQuizResults(results);
-        setQuizCompleted(true);
+      // Calculate the results
+      const results = calculateResults(responses);
+      setQuizResults(results);
+      setQuizCompleted(true);
 
-        // Save the user's responses to Firebase
-        const auth = getAuth();
-        const user = auth.currentUser;
+      // Save the user's responses to Firebase
+      const auth = getAuth();
+      const user = auth.currentUser;
 
-        if (user && currentSet) {
-            // Reference to the user's quiz sets
-            const userQuizSetsRef = ref(db, `users/${user.uid}/assignedSets`);
+      if (user && currentSet) {
+        // Reference to the user's quiz sets
+        const userQuizSetsRef = ref(db, `users/${user.uid}/assignedSets`);
 
-            // Ensure responses do not contain undefined values
-            const filteredResponses = responses
-                .filter(r => r !== null) // Remove null responses
-                .map(r => ({
-                    ...r,
-                    correctAnswer: r.correctAnswer ?? null, // Replace undefined with null
-                    selectedAnswer: r.selectedAnswer ?? null // Replace undefined with null
-                }));
+        // Ensure responses do not contain undefined values
+        const filteredResponses = responses
+          .filter(r => r !== null) // Remove null responses
+          .map(r => ({
+            ...r,
+            correctAnswer: r.correctAnswer ?? null, // Replace undefined with null
+            selectedAnswer: r.selectedAnswer ?? null // Replace undefined with null
+          }));
 
-            // Save quiz results
-            const resultsRef = ref(db, `users/${user.uid}/quizResults/${currentSet}`);
-            await set(resultsRef, {
-                completedAt: new Date().toISOString(),
-                score: results.score,
-                correctAnswers: results.correctAnswers,
-                totalQuestions: results.totalQuestions,
-                selectedSet: currentSet,
-                responses: filteredResponses
-            });
+        // Save quiz results
+        const resultsRef = ref(db, `users/${user.uid}/quizResults/${currentSet}`);
+        await set(resultsRef, {
+          completedAt: new Date().toISOString(),
+          score: results.score,
+          correctAnswers: results.correctAnswers,
+          totalQuestions: results.totalQuestions,
+          selectedSet: currentSet,
+          responses: filteredResponses
+        });
 
-            // Remove the completed quiz set from user's available sets
-            const availableSetsSnapshot = await get(userQuizSetsRef);
-            if (availableSetsSnapshot.exists()) {
-                const availableSets = availableSetsSnapshot.val();
+        // Remove the completed quiz set from user's available sets
+        const availableSetsSnapshot = await get(userQuizSetsRef);
+        if (availableSetsSnapshot.exists()) {
+          const availableSets = availableSetsSnapshot.val();
 
-                // Remove the current set from available sets
-                delete availableSets[currentSet];
+          // Remove the current set from available sets
+          delete availableSets[currentSet];
 
-                // Update the available sets
-                await set(userQuizSetsRef, availableSets);
-            }
-
-            console.log("Quiz completed, results saved, and set removed!", results);
+          // Update the available sets
+          await set(userQuizSetsRef, availableSets);
         }
+
+        console.log("Quiz completed, results saved, and set removed!", results);
+      }
     } catch (error) {
-        console.error("Error saving quiz results and removing set:", error);
+      console.error("Error saving quiz results and removing set:", error);
     }
-};
+  };
 
 
   const handleAnswerSelect = (option) => {
     const currentQuestion = questions[currentQuestionIndex];
-    
+
     if (currentQuestion.type === "MCQ") {
       setSelectedAnswers({
         ...selectedAnswers,
@@ -440,13 +443,16 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
       [currentQuestionIndex]: event.target.value
     });
   };
-  
+
 
   const handleBackToHome = () => {
     // Use global navigate function from window object
     if (window.appNavigate) {
       window.appNavigate('start');
     }
+  };
+  const isHTML = (str) => {
+    return /<[^>]+>/.test(str);
   };
 
   if (loading) {
@@ -488,7 +494,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
     return (
       <div className="quizContainer resultsContainer">
         <h1 className="resultsTitle">Quiz Results</h1>
-        
+
         <div className="scoreCard">
           <div className="scoreCircle">
             <div className="scoreValue">{quizResults.score}%</div>
@@ -500,22 +506,22 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
             </p>
           </div>
         </div>
-        
+
         <div className="questionReview">
           <h2>Question Review</h2>
           {quizResults.responses.map((response, index) => {
             // Find the corresponding question
-            const question = questions.find(q => q.id === response.questionId) || 
-                             questions[index];
-            
+            const question = questions.find(q => q.id === response.questionId) ||
+              questions[index];
+
             // Skip showing trivia questions in review
             if (response.type === "TRIVIA") {
               return null;
             }
-                             
+
             return (
-              <div 
-                key={index} 
+              <div
+                key={index}
                 className={`reviewItem ${response.skipped ? 'skipped' : (response.isCorrect ? 'correct' : 'incorrect')}`}
               >
                 <div className="reviewHeader">
@@ -524,14 +530,16 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
                     {response.skipped ? 'Skipped' : (response.isCorrect ? 'Correct' : 'Incorrect')}
                   </span>
                 </div>
-                <p className="reviewQuestion">{question ? question.question : 'Question not found'}</p>
+                <p className="reviewQuestion">
+                  {question ? (isHTML(question.question) ? parse(question.question) : question.question) : 'Question not found'}
+                </p>
                 <div className="answerDetail">
                   <p><strong>Your answer:</strong> {response.userAnswer || '(No answer)'}</p>
                   <p><strong>Correct answer:</strong> {
-                    Array.isArray(response.correctAnswer) ? 
-                      response.correctAnswer.join(', ') : 
-                      (typeof response.correctAnswer === 'object' && response.correctAnswer.text) ? 
-                        response.correctAnswer.text : 
+                    Array.isArray(response.correctAnswer) ?
+                      response.correctAnswer.join(', ') :
+                      (typeof response.correctAnswer === 'object' && response.correctAnswer.text) ?
+                        response.correctAnswer.text :
                         response.correctAnswer
                   }</p>
                 </div>
@@ -539,7 +547,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
             );
           })}
         </div>
-        
+
         <div className="actionButtons">
           <button onClick={handleBackToHome} className="homeButton">
             Hurray, Practice for today is Completed
@@ -553,37 +561,36 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
   const isLastQuestion = currentQuestionIndex === questions.length - 1;
   const hasSelectedAnswer = selectedAnswers[currentQuestionIndex] !== undefined;
   const isTriviaQuestion = currentQuestion.type === "TRIVIA";
-  
+
   // Calculate progress percentage
   const progressPercentage = ((currentQuestionIndex + 1) / questions.length) * 100;
 
   return (
     <div className='quizContainer'>
       <img src={practiceTime} alt="" />
-     
+
       <div className="progressBarContainer">
-        <div 
-          className="progressBar" 
+        <div
+          className="progressBar"
           style={{ width: `${progressPercentage}%` }}
         ></div>
       </div>
-      
+
       <div className='quizIndex'>
         Question {currentQuestionIndex + 1} of {questions.length}
       </div>
-      
+
       {/* Display question image if available */}
       {currentQuestion.questionImage ? (
         <img src={currentQuestion.questionImage} alt="Question" className="questionImage" />
       ) : null}
-      
+
       <div className="questionContainer">
         <h2 className="questionText">
-          {/* Display question type as a badge for trivia */}
           {isTriviaQuestion && <span className="triviaTag">Trivia</span>}
-          {currentQuestion.question}
+          {isHTML(currentQuestion.question) ? parse(currentQuestion.question) : currentQuestion.question}
         </h2>
-        
+
         {currentQuestion.type === "FILL_IN_THE_BLANKS" ? (
           <div className="fillBlankContainer">
             <input
@@ -600,7 +607,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
             {currentQuestion.options && currentQuestion.options
               .filter(option => option && option.text) // Only include valid options
               .map((option, index) => (
-                <li 
+                <li
                   key={index}
                   className={`optionItem ${selectedAnswers[currentQuestionIndex] === option.text ? 'selected' : ''}`}
                   onClick={() => handleAnswerSelect(option.text)}
@@ -617,19 +624,19 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
           <div className="triviaContainer">
             {currentQuestion.content && (
               <div className="triviaContent">
-                {currentQuestion.content}
+                {isHTML(currentQuestion.content) ? parse(currentQuestion.content) : currentQuestion.content}
               </div>
             )}
           </div>
         )}
       </div>
-      
+
       <div className="buttonContainer">
-        
-        
+
+
         {/* Skip button - only show for non-trivia questions */}
         {!isTriviaQuestion && (
-          <button 
+          <button
             onClick={handleSkipQuestion}
             className="skipButton"
             disabled={verifying}
@@ -638,7 +645,7 @@ Is the user's answer correct? Respond with ONLY "correct" or "incorrect".
           </button>
         )}
 
-<button 
+        <button
           onClick={handleNextQuestion}
           disabled={!isTriviaQuestion && !hasSelectedAnswer && verifying}
           className={`nextButton ${verifying ? 'verifying' : ''}`}
