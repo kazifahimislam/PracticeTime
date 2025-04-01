@@ -355,42 +355,7 @@ const Progress = () => {
                                         {response.isCorrect ? 'Correct' : 'Incorrect'}
                                       </td>
                                     </tr>
-                                    {/* Show additional question details if this question is selected */}
-                                    {selectedQuestionId === response.questionId && questionData && (
-                                      <tr>
-                                        <td colSpan="4">
-                                          <div className="question-details">
-                                            <h4>Question Details</h4>
-                                            <p>
-                                              <strong>Difficulty Level:</strong>{' '}
-                                              {questionData.difficultyLevel || 'N/A'}
-                                            </p>
-                                            <p>
-                                              <strong>Grade:</strong> {questionData.grade || 'N/A'}
-                                            </p>
-                                            <p>
-                                              <strong>Topic:</strong> {questionData.topic || 'N/A'}
-                                            </p>
-                                            {questionData.options && (
-                                              <p>
-                                                <strong>Options:</strong>{' '}
-                                                {Object.values(questionData.options).join(', ')}
-                                              </p>
-                                            )}
-                                            <p>
-                                              <strong>Date Added:</strong>{' '}
-                                              {questionData.date
-                                                ? formatDate(questionData.date)
-                                                : 'N/A'}
-                                            </p>
-                                            <p>
-                                              <strong>Topic List:</strong>{' '}
-                                              {questionData.topicList || 'N/A'}
-                                            </p>
-                                          </div>
-                                        </td>
-                                      </tr>
-                                    )}
+                                    
                                   </React.Fragment>
                                 );
                               })}
