@@ -11,9 +11,9 @@ const Progress = () => {
     authStatus: null,
     dataPath: null,
   });
-  const [selectedQuizId, setSelectedQuizId] = useState(null); // Track which quiz details to show
-  const [questionDetails, setQuestionDetails] = useState({}); // Store fetched question details
-  const [selectedQuestionId, setSelectedQuestionId] = useState(null); // Track which question's details to show
+  const [selectedQuizId, setSelectedQuizId] = useState(null);
+  const [questionDetails, setQuestionDetails] = useState({});
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -56,7 +56,6 @@ const Progress = () => {
     fetchUserData();
   }, []);
 
-  // Fetch question details when a quiz is selected
   useEffect(() => {
     const fetchQuestionDetails = async () => {
       if (!selectedQuizId || !userData?.quizResults?.[selectedQuizId]?.responses) {
@@ -313,7 +312,7 @@ const Progress = () => {
                           <table className="details-table">
                             <thead>
                               <tr>
-                                <th>Question</th>
+                                <th className="question-column">Question</th>
                                 <th>Your Answer</th>
                                 <th>Correct Answer</th>
                                 <th>Result</th>
@@ -334,9 +333,10 @@ const Progress = () => {
                                       }
                                       style={{ cursor: 'pointer' }}
                                     >
-                                      <td>
+                                      <td className="question-column">
                                         {questionData.question ? (
                                           <div
+                                            className="question-content"
                                             dangerouslySetInnerHTML={{
                                               __html: questionData.question,
                                             }}
