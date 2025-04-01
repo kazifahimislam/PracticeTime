@@ -9,95 +9,124 @@ const Progress = () => {
   const [debugInfo, setDebugInfo] = useState({
     userId: null,
     authStatus: null,
-    dataPath: null
+    dataPath: null,
   });
-  
+  const [selectedQuizId, setSelectedQuizId] = useState(null); // Track which quiz details to show
+  const [questionDetails, setQuestionDetails] = useState({}); // Store fetched question details
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null); // Track which question's details to show
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Check auth state
         const user = firebaseServices.auth.currentUser;
-        
-        // Update debug info
-        setDebugInfo(prev => ({
-          ...prev, 
+        setDebugInfo((prev) => ({
+          ...prev,
           userId: user ? user.uid : 'Not authenticated',
-          authStatus: user ? 'Authenticated' : 'Not authenticated'
+          authStatus: user ? 'Authenticated' : 'Not authenticated',
         }));
-        
+
         if (!user) {
-          setError("User not authenticated. Please sign in.");
+          setError('User not authenticated. Please sign in.');
           setLoading(false);
           return;
         }
-        
-        // Path for user data
+
         const userPath = `users/${user.uid}`;
-        setDebugInfo(prev => ({ ...prev, dataPath: userPath }));
-        
-        // Reference to user data
+        setDebugInfo((prev) => ({ ...prev, dataPath: userPath }));
+
         const userRef = firebaseServices.ref(firebaseServices.db, userPath);
-        
-        // Get data once
         const snapshot = await firebaseServices.get(userRef);
-        
+
         if (snapshot.exists()) {
           const data = snapshot.val();
-          console.log("User data found:", data); // Debug log
+          console.log('User data found:', data);
           setUserData(data);
         } else {
-          console.log("No data available at path:", userPath); // Debug log
-          setError("No user data found. You may need to complete some quizzes first.");
+          console.log('No data available at path:', userPath);
+          setError('No user data found. You may need to complete some quizzes first.');
         }
         setLoading(false);
       } catch (err) {
-        console.error("Firebase error:", err); // Debug log
-        setError("Error: " + err.message);
+        console.error('Firebase error:', err);
+        setError('Error: ' + err.message);
         setLoading(false);
       }
     };
-    
+
     fetchUserData();
   }, []);
-  
-  // Calculate overall progress
+
+  // Fetch question details when a quiz is selected
+  useEffect(() => {
+    const fetchQuestionDetails = async () => {
+      if (!selectedQuizId || !userData?.quizResults?.[selectedQuizId]?.responses) {
+        setQuestionDetails({});
+        return;
+      }
+
+      const responses = userData.quizResults[selectedQuizId].responses;
+      const newQuestionDetails = {};
+
+      try {
+        for (const response of responses) {
+          const questionId = response.questionId;
+          const questionPath = `questions/${questionId}`;
+          const questionRef = firebaseServices.ref(firebaseServices.db, questionPath);
+          const snapshot = await firebaseServices.get(questionRef);
+
+          if (snapshot.exists()) {
+            newQuestionDetails[questionId] = snapshot.val();
+          } else {
+            newQuestionDetails[questionId] = { question: 'Question not found' };
+          }
+        }
+        setQuestionDetails(newQuestionDetails);
+      } catch (err) {
+        console.error('Error fetching question details:', err);
+        setQuestionDetails((prev) => ({
+          ...prev,
+          [responses[0]?.questionId]: { question: 'Error fetching question' },
+        }));
+      }
+    };
+
+    fetchQuestionDetails();
+  }, [selectedQuizId, userData]);
+
   const calculateOverallProgress = () => {
     if (!userData || !userData.quizResults) return { attempted: 0, correct: 0, percentage: 0 };
-    
+
     let totalAttempted = 0;
     let totalCorrect = 0;
-    
-    Object.values(userData.quizResults).forEach(quiz => {
+
+    Object.values(userData.quizResults).forEach((quiz) => {
       if (quiz.totalQuestions) totalAttempted += parseInt(quiz.totalQuestions);
       if (quiz.correctAnswers) totalCorrect += parseInt(quiz.correctAnswers);
     });
-    
+
     return {
       attempted: totalAttempted,
       correct: totalCorrect,
-      percentage: totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : 0
+      percentage: totalAttempted > 0 ? Math.round((totalCorrect / totalAttempted) * 100) : 0,
     };
   };
-  
-  // Calculate category progress
+
   const calculateCategoryProgress = () => {
     const categories = {
       'Number System': { attempted: 0, correct: 0 },
-      'Operations': { attempted: 0, correct: 0 },
+      Operations: { attempted: 0, correct: 0 },
       'Shape and Geometry': { attempted: 0, correct: 0 },
-      'Measurement': { attempted: 0, correct: 0 },
+      Measurement: { attempted: 0, correct: 0 },
       'Data Handling': { attempted: 0, correct: 0 },
-      'Puzzles': { attempted: 0, correct: 0 }
+      Puzzles: { attempted: 0, correct: 0 },
     };
-    
+
     if (!userData || !userData.quizResults) return categories;
-    
-    // Extract category from quiz set ID
-    Object.values(userData.quizResults).forEach(quiz => {
+
+    Object.values(userData.quizResults).forEach((quiz) => {
       const setId = quiz.selectedSet || '';
-      
-      let category = 'Operations'; // Default
-      
+      let category = 'Operations';
+
       if (setId.includes('Number')) {
         category = 'Number System';
       } else if (setId.includes('Shape') || setId.includes('Geo')) {
@@ -109,36 +138,39 @@ const Progress = () => {
       } else if (setId.includes('Puzzle')) {
         category = 'Puzzles';
       }
-      
+
       if (quiz.totalQuestions) categories[category].attempted += parseInt(quiz.totalQuestions);
       if (quiz.correctAnswers) categories[category].correct += parseInt(quiz.correctAnswers);
     });
-    
-    // Calculate percentages
-    Object.keys(categories).forEach(category => {
+
+    Object.keys(categories).forEach((category) => {
       const { attempted, correct } = categories[category];
       categories[category].percentage = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
     });
-    
+
     return categories;
   };
-  
-  // Format date string
+
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
-  
+
+  const sortedQuizResults = userData?.quizResults
+    ? Object.entries(userData.quizResults).sort(([, quizA], [, quizB]) => {
+        return new Date(quizB.completedAt) - new Date(quizA.completedAt);
+      })
+    : [];
+
   if (loading) return <div className="loading-message">Loading user progress...</div>;
-  
-  // Show debug information when there's an error
+
   if (error) {
     return (
       <div className="progress-container">
@@ -146,7 +178,6 @@ const Progress = () => {
           <h3>Error</h3>
           <p>{error}</p>
         </div>
-        
         <div className="debug-box">
           <h3>Debugging Information</h3>
           <ul>
@@ -163,56 +194,37 @@ const Progress = () => {
               <li>Check that the data structure matches what's expected.</li>
             </ol>
           </div>
-          
-          <button 
-            onClick={() => window.location.reload()}
-            className="retry-button"
-          >
+          <button onClick={() => window.location.reload()} className="retry-button">
             Retry Loading
           </button>
         </div>
       </div>
     );
   }
-  
-  // Default when there is no error but also no quiz data
+
   if (!userData || !userData.quizResults || Object.keys(userData.quizResults).length === 0) {
     return (
       <div className="progress-container">
         <h1>Your Learning Progress</h1>
-        
         <div className="empty-state">
           <h2>No Quiz Data Found</h2>
           <p>It looks like you haven't completed any quizzes yet.</p>
           <p>Complete your first quiz to see your progress statistics here!</p>
-          
-          <button 
-            onClick={() => window.location.href = '/quizzes'}
-            className="cta-button"
-          >
+          <button onClick={() => (window.location.href = '/quizzes')} className="cta-button">
             Go to Quizzes
           </button>
         </div>
       </div>
     );
   }
-  
+
   const overallProgress = calculateOverallProgress();
   const categoryProgress = calculateCategoryProgress();
-  
-  // Main component view
+
   return (
     <div className="progress-container">
       <h1>Your Learning Progress</h1>
-      
-      {/* User Info
-      {userData && (
-        <div className="user-info">
-          <p><strong>Account Created:</strong> {formatDate(userData.createdAt)}</p>
-          <p><strong>Email:</strong> {userData.email.replace(/@gmail\.com$/, "")}</p>
-        </div>
-      )} */}
-      
+
       {/* Overall Progress */}
       <div className="progress-section">
         <h2>Overall Progress</h2>
@@ -231,10 +243,9 @@ const Progress = () => {
               <p className="metric-value">{overallProgress.percentage}%</p>
             </div>
           </div>
-          
           <div className="progress-bar-bg">
-            <div 
-              className="progress-bar-fill" 
+            <div
+              className="progress-bar-fill"
               style={{ width: `${overallProgress.percentage}%` }}
             ></div>
           </div>
@@ -243,7 +254,7 @@ const Progress = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Category Progress */}
       <div className="progress-section">
         <h2>Progress by Category</h2>
@@ -255,7 +266,7 @@ const Progress = () => {
                 <span className="progress-percentage">{data.percentage}%</span>
               </div>
               <div className="progress-bar-bg">
-                <div 
+                <div
                   className={`progress-bar-fill category-${index}`}
                   style={{ width: `${data.percentage}%` }}
                 ></div>
@@ -267,7 +278,7 @@ const Progress = () => {
           ))}
         </div>
       </div>
-      
+
       {/* Recent Quiz Results */}
       <div className="progress-section">
         <h2>Recent Quiz Results</h2>
@@ -275,7 +286,6 @@ const Progress = () => {
           <table className="results-table">
             <thead>
               <tr>
-                
                 <th>Completed</th>
                 <th>Score</th>
                 <th>Correct</th>
@@ -283,26 +293,119 @@ const Progress = () => {
               </tr>
             </thead>
             <tbody>
-              {Object.entries(userData.quizResults).map(([quizId, quiz]) => (
-                <tr key={quizId}>
-                  
-                  <td>{formatDate(quiz.completedAt)}</td>
-                  <td>{quiz.score || 'N/A'}</td>
-                  <td>{quiz.correctAnswers || 0}</td>
-                  <td>{quiz.totalQuestions || 0}</td>
-                </tr>
+              {sortedQuizResults.map(([quizId, quiz]) => (
+                <React.Fragment key={quizId}>
+                  <tr
+                    onClick={() => setSelectedQuizId(selectedQuizId === quizId ? null : quizId)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <td>{formatDate(quiz.completedAt)}</td>
+                    <td>{quiz.score || '0'}</td>
+                    <td>{quiz.correctAnswers || 0}</td>
+                    <td>{quiz.totalQuestions || 0}</td>
+                  </tr>
+                  {/* Show details if this quiz is selected */}
+                  {selectedQuizId === quizId && quiz.responses && (
+                    <tr>
+                      <td colSpan="4">
+                        <div className="quiz-details">
+                          <h3>Quiz Details</h3>
+                          <table className="details-table">
+                            <thead>
+                              <tr>
+                                <th>Question</th>
+                                <th>Your Answer</th>
+                                <th>Correct Answer</th>
+                                <th>Result</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {quiz.responses.map((response, index) => {
+                                const questionData = questionDetails[response.questionId] || {};
+                                return (
+                                  <React.Fragment key={index}>
+                                    <tr
+                                      onClick={() =>
+                                        setSelectedQuestionId(
+                                          selectedQuestionId === response.questionId
+                                            ? null
+                                            : response.questionId
+                                        )
+                                      }
+                                      style={{ cursor: 'pointer' }}
+                                    >
+                                      <td>
+                                        {questionData.question ? (
+                                          <div
+                                            dangerouslySetInnerHTML={{
+                                              __html: questionData.question,
+                                            }}
+                                          />
+                                        ) : (
+                                          'Loading...'
+                                        )}
+                                      </td>
+                                      <td>{response.userAnswer}</td>
+                                      <td>{response.correctAnswer.text}</td>
+                                      <td
+                                        style={{
+                                          color: response.isCorrect ? 'green' : 'red',
+                                        }}
+                                      >
+                                        {response.isCorrect ? 'Correct' : 'Incorrect'}
+                                      </td>
+                                    </tr>
+                                    {/* Show additional question details if this question is selected */}
+                                    {selectedQuestionId === response.questionId && questionData && (
+                                      <tr>
+                                        <td colSpan="4">
+                                          <div className="question-details">
+                                            <h4>Question Details</h4>
+                                            <p>
+                                              <strong>Difficulty Level:</strong>{' '}
+                                              {questionData.difficultyLevel || 'N/A'}
+                                            </p>
+                                            <p>
+                                              <strong>Grade:</strong> {questionData.grade || 'N/A'}
+                                            </p>
+                                            <p>
+                                              <strong>Topic:</strong> {questionData.topic || 'N/A'}
+                                            </p>
+                                            {questionData.options && (
+                                              <p>
+                                                <strong>Options:</strong>{' '}
+                                                {Object.values(questionData.options).join(', ')}
+                                              </p>
+                                            )}
+                                            <p>
+                                              <strong>Date Added:</strong>{' '}
+                                              {questionData.date
+                                                ? formatDate(questionData.date)
+                                                : 'N/A'}
+                                            </p>
+                                            <p>
+                                              <strong>Topic List:</strong>{' '}
+                                              {questionData.topicList || 'N/A'}
+                                            </p>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>
         </div>
       </div>
-      
-      {/* Learning Goals */}
-      {/* <div className="goals-section">
-        <h3>Learning Goals</h3>
-        <p>We expect you to complete 500 questions in each topic category for optimal learning progress.</p>
-        <p>Current progress: {overallProgress.attempted} of 3000 total questions ({Math.round((overallProgress.attempted / 3000) * 100)}%)</p>
-      </div> */}
     </div>
   );
 };
