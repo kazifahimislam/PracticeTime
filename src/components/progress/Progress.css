@@ -501,3 +501,38 @@
   max-width: 100%; /* Ensure images don't exceed the column width */
   height: auto;
 }
+.daily-stars {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.daily-stars h3 {
+  font-size: 1.2em;
+  margin-bottom: 10px;
+}
+
+.daily-stars p {
+  font-size: 1.1em;
+}
+
+.daily-stars span {
+  font-size: 1.5em;
+  margin: 0 5px;
+}
+
+.results-table th,
+.results-table td {
+  padding: 10px;
+  text-align: center;
+}
+
+.results-table th:nth-child(5),
+.results-table td:nth-child(5) {
+  width: 10%; /* Adjust width for the Achievement column */
+}
+.total-stars {
+  margin-top: 15px;
+}
+.total-stars span {
+  margin-right: 5px; /* Adds spacing between stars */
+}
