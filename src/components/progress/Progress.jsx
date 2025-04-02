@@ -2,6 +2,110 @@ import React, { useState, useEffect } from 'react';
 import firebaseServices from '../firebase/firebaseSetup';
 import './Progress.css';
 
+const MATH_DATA = {
+  grades: [
+    { code: "G1", text: "Grade 1" },
+    { code: "G2", text: "Grade 2" },
+    { code: "G3", text: "Grade 3" },
+    { code: "G4", text: "Grade 4" },
+  ],
+  topics: [
+    { grade: "G1", code: "G1A", text: "Number System" },
+    { grade: "G2", code: "G2A", text: "Number System" },
+    { grade: "G3", code: "G3A", text: "Number System" },
+    { grade: "G4", code: "G4A", text: "Number System" },
+    { grade: "G1", code: "G1B", text: "Operations (Addition, Subtraction ....)" },
+    { grade: "G2", code: "G2B", text: "Operations (Addition, Subtraction ....)" },
+    { grade: "G3", code: "G3B", text: "Operations (Addition, Subtraction ....)" },
+    { grade: "G4", code: "G4B", text: "Operations (Addition, Subtraction ....)" },
+    { grade: "G1", code: "G1C", text: "Shapes and Geometry" },
+    { grade: "G2", code: "G2C", text: "Shapes and Geometry" },
+    { grade: "G3", code: "G3C", text: "Shapes and Geometry" },
+    { grade: "G4", code: "G4C", text: "Shapes and Geometry" },
+    { grade: "G1", code: "G1D", text: "Measurement" },
+    { grade: "G2", code: "G2D", text: "Measurement" },
+    { grade: "G3", code: "G3D", text: "Measurement" },
+    { grade: "G4", code: "G4D", text: "Measurement" },
+    { grade: "G1", code: "G1E", text: "Data Handling" },
+    { grade: "G2", code: "G2E", text: "Data Handling" },
+    { grade: "G3", code: "G3E", text: "Data Handling" },
+    { grade: "G4", code: "G4E", text: "Data Handling" },
+    { grade: "G1", code: "G1F", text: "Maths Puzzles" },
+    { grade: "G2", code: "G2F", text: "Maths Puzzles" },
+    { grade: "G3", code: "G3F", text: "Maths Puzzles" },
+    { grade: "G4", code: "G4F", text: "Maths Puzzles" },
+    { grade: "G1", code: "G1G", text: "Real Life all concept sums" },
+    { grade: "G2", code: "G2G", text: "Real Life all concept sums" },
+    { grade: "G3", code: "G3G", text: "Real Life all concept sums" },
+    { grade: "G4", code: "G4G", text: "Real Life all concept sums" },
+    { grade: "G1", code: "G1Z", text: "Others" },
+    { grade: "G2", code: "G2Z", text: "Others" },
+    { grade: "G3", code: "G3Z", text: "Others" },
+    { grade: "G4", code: "G4Z", text: "Others" },
+  ],
+  subtopics: {},
+};
+
+const convertTopicToText = (questionData, mathData) => {
+  const { grade, topic, topicList } = questionData;
+
+  const result = { ...questionData };
+
+  if (topic) {
+    const topicEntry = mathData.topics.find(
+      (t) => t.grade === grade && t.code === topic
+    );
+    if (topicEntry) {
+      result.topicText = topicEntry.text;
+    } else {
+      result.topicText = topic;
+    }
+  }
+
+  if (topic && topicList && mathData.subtopics[topic]?.[grade]) {
+    const subtopicEntry = mathData.subtopics[topic][grade].find(
+      (st) => st.code === topicList
+    );
+    if (subtopicEntry) {
+      result.topicListText = subtopicEntry.text;
+    } else {
+      result.topicListText = topicList;
+    }
+  }
+
+  return result;
+};
+
+const mapTopicToCategory = (topicText) => {
+  const normalizedTopic = topicText
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/s$/, '');
+
+  const topicToCategoryMap = {
+    'number system': 'Number System',
+    'operations (addition, subtraction ....)': 'Operations',
+    'operation': 'Operations',
+    'shapes and geometry': 'Shapes and Geometry',
+    'shape and geometry': 'Shapes and Geometry',
+    'measurement': 'Measurement',
+    'data handling': 'Data Handling',
+    'maths puzzle': 'Maths Puzzles',
+    'math puzzle': 'Maths Puzzles',
+    'real life all concept sum': 'Real Life all concept sums',
+    'other': 'Others',
+  };
+
+  for (const [key, category] of Object.entries(topicToCategoryMap)) {
+    if (normalizedTopic.includes(key)) {
+      return category;
+    }
+  }
+
+  return 'Others';
+};
+
 const Progress = () => {
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -14,6 +118,7 @@ const Progress = () => {
   const [selectedQuizId, setSelectedQuizId] = useState(null);
   const [questionDetails, setQuestionDetails] = useState({});
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
+  const [questionDetailsLoading, setQuestionDetailsLoading] = useState(true);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -57,40 +162,80 @@ const Progress = () => {
   }, []);
 
   useEffect(() => {
-    const fetchQuestionDetails = async () => {
-      if (!selectedQuizId || !userData?.quizResults?.[selectedQuizId]?.responses) {
+    const fetchAllQuestionDetails = async () => {
+      if (!userData?.quizResults) {
+        console.log('No quiz results to fetch question details for');
         setQuestionDetails({});
+        setQuestionDetailsLoading(false);
         return;
       }
 
-      const responses = userData.quizResults[selectedQuizId].responses;
-      const newQuestionDetails = {};
+      setQuestionDetailsLoading(true);
+
+      // Load cached question details from localStorage
+      const cachedQuestions = localStorage.getItem('questionDetails');
+      const newQuestionDetails = cachedQuestions ? JSON.parse(cachedQuestions) : {};
 
       try {
-        for (const response of responses) {
-          const questionId = response.questionId;
-          const questionPath = `questions/${questionId}`;
-          const questionRef = firebaseServices.ref(firebaseServices.db, questionPath);
-          const snapshot = await firebaseServices.get(questionRef);
+        const allQuestionIds = new Set();
+        Object.values(userData.quizResults).forEach((quiz) => {
+          if (quiz.responses) {
+            quiz.responses.forEach((response) => {
+              allQuestionIds.add(response.questionId);
+            });
+          }
+        });
+
+        console.log('Total unique question IDs to fetch:', allQuestionIds.size);
+
+        const questionIdsToFetch = Array.from(allQuestionIds).filter(
+          (questionId) => !newQuestionDetails[questionId]
+        );
+
+        if (questionIdsToFetch.length > 0) {
+          console.log('Fetching uncached question IDs:', questionIdsToFetch);
+
+          const questionsRef = firebaseServices.ref(firebaseServices.db, 'questions');
+          const snapshot = await firebaseServices.get(questionsRef);
 
           if (snapshot.exists()) {
-            newQuestionDetails[questionId] = snapshot.val();
+            const allQuestions = snapshot.val();
+            console.log('Fetched all questions:', allQuestions);
+
+            for (const questionId of questionIdsToFetch) {
+              if (allQuestions[questionId]) {
+                newQuestionDetails[questionId] = allQuestions[questionId];
+              } else {
+                newQuestionDetails[questionId] = { question: 'Question not found' };
+                console.log(`Question ${questionId} not found in /questions`);
+              }
+            }
           } else {
-            newQuestionDetails[questionId] = { question: 'Question not found' };
+            console.log('No questions found at /questions');
+            for (const questionId of questionIdsToFetch) {
+              newQuestionDetails[questionId] = { question: 'Question not found' };
+            }
           }
+
+          localStorage.setItem('questionDetails', JSON.stringify(newQuestionDetails));
+        } else {
+          console.log('All questions already in cache');
         }
+
         setQuestionDetails(newQuestionDetails);
       } catch (err) {
-        console.error('Error fetching question details:', err);
+        console.error('Error fetching all question details:', err);
         setQuestionDetails((prev) => ({
           ...prev,
-          [responses[0]?.questionId]: { question: 'Error fetching question' },
+          error: 'Error fetching questions',
         }));
+      } finally {
+        setQuestionDetailsLoading(false);
       }
     };
 
-    fetchQuestionDetails();
-  }, [selectedQuizId, userData]);
+    fetchAllQuestionDetails();
+  }, [userData]);
 
   const calculateOverallProgress = () => {
     if (!userData || !userData.quizResults) return { attempted: 0, correct: 0, percentage: 0 };
@@ -110,41 +255,73 @@ const Progress = () => {
     };
   };
 
-  const calculateCategoryProgress = () => {
+  const calculateCategoryProgress = (userData, questionDetails, mathData) => {
     const categories = {
       'Number System': { attempted: 0, correct: 0 },
-      Operations: { attempted: 0, correct: 0 },
-      'Shape and Geometry': { attempted: 0, correct: 0 },
-      Measurement: { attempted: 0, correct: 0 },
+      'Operations': { attempted: 0, correct: 0 },
+      'Shapes and Geometry': { attempted: 0, correct: 0 },
+      'Measurement': { attempted: 0, correct: 0 },
       'Data Handling': { attempted: 0, correct: 0 },
-      Puzzles: { attempted: 0, correct: 0 },
+      'Maths Puzzles': { attempted: 0, correct: 0 },
+      'Real Life all concept sums': { attempted: 0, correct: 0 },
+      'Others': { attempted: 0, correct: 0 },
     };
 
-    if (!userData || !userData.quizResults) return categories;
+    if (!userData || !userData.quizResults) {
+      console.log('No userData or quizResults available');
+      return categories;
+    }
 
-    Object.values(userData.quizResults).forEach((quiz) => {
-      const setId = quiz.selectedSet || '';
-      let category = 'Operations';
-
-      if (setId.includes('Number')) {
-        category = 'Number System';
-      } else if (setId.includes('Shape') || setId.includes('Geo')) {
-        category = 'Shape and Geometry';
-      } else if (setId.includes('Measure')) {
-        category = 'Measurement';
-      } else if (setId.includes('Data')) {
-        category = 'Data Handling';
-      } else if (setId.includes('Puzzle')) {
-        category = 'Puzzles';
+    Object.values(userData.quizResults).forEach((quiz, quizIndex) => {
+      if (!quiz.responses) {
+        console.log(`Quiz ${quizIndex} has no responses`);
+        return;
       }
 
-      if (quiz.totalQuestions) categories[category].attempted += parseInt(quiz.totalQuestions);
-      if (quiz.correctAnswers) categories[category].correct += parseInt(quiz.correctAnswers);
+      quiz.responses.forEach((response, responseIndex) => {
+        const questionId = response.questionId;
+        const questionData = questionDetails[questionId];
+
+        if (!questionData) {
+          console.log(`Question data not found for questionId: ${questionId}`);
+          return;
+        }
+
+        if (!questionData.topic || !questionData.grade) {
+          console.log(`Question ${questionId} missing topic or grade:`, questionData);
+          categories['Others'].attempted += 1;
+          if (response.isCorrect) categories['Others'].correct += 1;
+          return;
+        }
+
+        const convertedQuestion = convertTopicToText(questionData, mathData);
+        const topicText = convertedQuestion.topicText;
+
+        console.log(`Question ${questionId} topic: ${topicText}`);
+
+        const category = mapTopicToCategory(topicText);
+
+        console.log(`Mapped topic "${topicText}" to category: ${category}`);
+
+        if (categories[category]) {
+          categories[category].attempted += 1;
+          if (response.isCorrect) {
+            categories[category].correct += 1;
+          }
+        } else {
+          console.log(`Category "${category}" not found, defaulting to Others`);
+          categories['Others'].attempted += 1;
+          if (response.isCorrect) {
+            categories['Others'].correct += 1;
+          }
+        }
+      });
     });
 
     Object.keys(categories).forEach((category) => {
       const { attempted, correct } = categories[category];
       categories[category].percentage = attempted > 0 ? Math.round((correct / attempted) * 100) : 0;
+      console.log(`Category ${category}: ${correct}/${attempted} (${categories[category].percentage}%)`);
     });
 
     return categories;
@@ -218,7 +395,7 @@ const Progress = () => {
   }
 
   const overallProgress = calculateOverallProgress();
-  const categoryProgress = calculateCategoryProgress();
+  const categoryProgress = calculateCategoryProgress(userData, questionDetails, MATH_DATA);
 
   return (
     <div className="progress-container">
@@ -257,25 +434,29 @@ const Progress = () => {
       {/* Category Progress */}
       <div className="progress-section">
         <h2>Progress by Category</h2>
-        <div className="stat-card">
-          {Object.entries(categoryProgress).map(([category, data], index) => (
-            <div key={category} className="category-progress">
-              <div className="progress-header">
-                <span className="progress-label">{category}</span>
-                <span className="progress-percentage">{data.percentage}%</span>
+        {questionDetailsLoading ? (
+          <div className="loading-message">Loading category progress...</div>
+        ) : (
+          <div className="stat-card">
+            {Object.entries(categoryProgress).map(([category, data], index) => (
+              <div key={category} className="category-progress">
+                <div className="progress-header">
+                  <span className="progress-label">{category}</span>
+                  <span className="progress-percentage">{data.percentage}%</span>
+                </div>
+                <div className="progress-bar-bg">
+                  <div
+                    className={`progress-bar-fill category-${index}`}
+                    style={{ width: `${data.percentage}%` }}
+                  ></div>
+                </div>
+                <div className="progress-info">
+                  {data.correct} of {data.attempted} questions
+                </div>
               </div>
-              <div className="progress-bar-bg">
-                <div
-                  className={`progress-bar-fill category-${index}`}
-                  style={{ width: `${data.percentage}%` }}
-                ></div>
-              </div>
-              <div className="progress-info">
-                {data.correct} of {data.attempted} questions
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Recent Quiz Results */}
@@ -303,7 +484,6 @@ const Progress = () => {
                     <td>{quiz.correctAnswers || 0}</td>
                     <td>{quiz.totalQuestions || 0}</td>
                   </tr>
-                  {/* Show details if this quiz is selected */}
                   {selectedQuizId === quizId && quiz.responses && (
                     <tr>
                       <td colSpan="4">
@@ -355,7 +535,6 @@ const Progress = () => {
                                         {response.isCorrect ? 'Correct' : 'Incorrect'}
                                       </td>
                                     </tr>
-                                    
                                   </React.Fragment>
                                 );
                               })}
