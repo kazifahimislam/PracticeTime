@@ -470,7 +470,7 @@ const Progress = () => {
           </div>
           {/* Total Stars */}
           <div className="total-stars">
-            <h3>Total Stars Earned</h3>
+            <h3>Total Stars Earned ({totalStars})</h3>
             {totalStars > 0 ? (
               <p>
                 {Array.from({ length: totalStars }, (_, i) => (
@@ -478,7 +478,7 @@ const Progress = () => {
                     ⭐
                   </span>
                 ))}
-                {` (${totalStars} total sets completed above 50%)`}
+                
               </p>
             ) : (
               <p>No stars earned yet. Complete a set above 50% to earn a star!</p>
