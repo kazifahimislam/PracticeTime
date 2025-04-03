@@ -91,7 +91,7 @@ const Login = ({ onLoginSuccess }) => {
           <div className="formGroup">
             <input
               type="text"
-              placeholder="Username"
+              placeholder="Username or phone number"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={loading}
