@@ -11,6 +11,7 @@ const Home = ({ onNavigate }) => {
   const [dailyQuizSet, setDailyQuizSet] = useState('');
   const [hasQuizzes, setHasQuizzes] = useState(false);
   const [user, setUser] = useState(null);
+  const [totalStars, setTotalStars] = useState(0);
   
   // Listen for authentication state changes
   useEffect(() => {
@@ -37,6 +38,7 @@ const Home = ({ onNavigate }) => {
         const userId = user.uid;
         console.log("Fetching quizzes for user:", userId);
         
+        // Fetch assigned quiz sets
         const userRef = ref(db, `users/${userId}/assignedSets`);
         const snapshot = await get(userRef);
         
@@ -73,8 +75,19 @@ const Home = ({ onNavigate }) => {
           setAssignedQuizzes([]);
           setHasQuizzes(false);
         }
+        
+        // Fetch total stars earned
+        const quizResultsRef = ref(db, `users/${userId}/quizResults`);
+        const quizResultsSnapshot = await get(quizResultsRef);
+        
+        if (quizResultsSnapshot.exists()) {
+          const quizResults = quizResultsSnapshot.val();
+          const stars = calculateTotalStars(quizResults);
+          setTotalStars(stars);
+          console.log("Total stars:", stars);
+        }
       } catch (error) {
-        console.error("Error fetching assigned quizzes:", error);
+        console.error("Error fetching data:", error);
         setHasQuizzes(false);
       } finally {
         setLoading(false);
@@ -83,6 +96,19 @@ const Home = ({ onNavigate }) => {
     
     fetchAssignedQuizzes();
   }, [user, db]); // Re-run when user or db changes
+  
+  // Function to calculate total stars from quiz results
+  const calculateTotalStars = (quizResults) => {
+    if (!quizResults) return 0;
+    
+    const successfulSets = Object.values(quizResults).filter((quiz) => {
+      const total = parseInt(quiz.totalQuestions) || 0;
+      const correct = parseInt(quiz.correctAnswers) || 0;
+      return total > 0 && (correct / total) * 100 >= 50;
+    }).length;
+    
+    return successfulSets;
+  };
   
   // Function to determine the daily quiz set based on the date
   const getDailyQuizSet = (quizzes) => {
@@ -108,6 +134,45 @@ const Home = ({ onNavigate }) => {
     }
   };
   
+  // Render stars with max visible stars, rows and overflow indicator
+  const StarDisplay = ({ totalStars, maxVisibleStars = 10, maxRows = 2 }) => {
+    const starsPerRow = Math.ceil(maxVisibleStars / maxRows);
+    const visibleStars = Math.min(totalStars, maxVisibleStars);
+    const hiddenStars = totalStars - visibleStars;
+    
+    // Create rows of stars
+    const rows = [];
+    for (let i = 0; i < Math.min(maxRows, Math.ceil(visibleStars / starsPerRow)); i++) {
+      const rowStars = Math.min(
+        starsPerRow,
+        visibleStars - i * starsPerRow
+      );
+      
+      rows.push(
+        <div key={`row-${i}`} className="stars-row">
+          {Array.from({ length: rowStars }).map((_, index) => (
+            <span 
+              key={index} 
+              role="img" 
+              aria-label="star" 
+              className="star-item">
+              ⭐
+            </span>
+          ))}
+        </div>
+      );
+    }
+    
+    return (
+      <div className="stars-container">
+        {rows}
+        {hiddenStars > 0 && (
+          <div className="more-stars">+{hiddenStars} more</div>
+        )}
+      </div>
+    );
+  };
+  
   return (
     <div className='homeContainer'>
       <div className='quizHomeContainer'>
@@ -121,6 +186,20 @@ const Home = ({ onNavigate }) => {
           alt="Practice Time" 
         />
         <h1>The more you practice, the better you become</h1>
+        
+        {/* Stars Achievement Display */}
+        <div className="achievement-section">
+          <h2>Your Stars</h2>
+          {totalStars > 0 ? (
+            <>
+              <StarDisplay totalStars={totalStars} maxVisibleStars={20} maxRows={2} />
+              <p className="achievement-text">You've earned {totalStars} stars so far!</p>
+            </>
+          ) : (
+            <p className="achievement-text">Complete quizzes with a score above 50% to earn stars!</p>
+          )}
+        </div>
+        
         <hr />
         
         {loading ? (
@@ -141,10 +220,8 @@ const Home = ({ onNavigate }) => {
               </>
             ) : (
               <div className="noQuizzesMessage">
-                <p>You don't have any PracticeSheet assigned yet
-                .</p>
-                <button disabled className="disabledButton">Start PracticeSheet
-                </button>
+                <p>You don't have any PracticeSheet assigned yet.</p>
+                <button disabled className="disabledButton">Start PracticeSheet</button>
               </div>
             )}
           </div>
