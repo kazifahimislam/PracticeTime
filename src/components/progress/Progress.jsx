@@ -468,38 +468,39 @@ const Progress = () => {
           <div className="progress-info">
             {overallProgress.correct} of {overallProgress.attempted} questions
           </div>
-          {/* Total Stars */}
           <div className="total-stars">
-            <h3>Total Stars Earned ({totalStars})</h3>
-            {totalStars > 0 ? (
-              <p>
-                {Array.from({ length: totalStars }, (_, i) => (
-                  <span key={i} role="img" aria-label="star">
-                    ⭐
-                  </span>
-                ))}
-                
-              </p>
-            ) : (
-              <p>No stars earned yet. Complete a set above 50% to earn a star!</p>
-            )}
-          </div>
-          {/* Daily Stars */}
-          <div className="daily-stars">
-            <h3>Today's Achievements</h3>
-            {dailyStars > 0 ? (
-              <p>
-                {Array.from({ length: dailyStars }, (_, i) => (
-                  <span key={i} role="img" aria-label="star">
-                    ⭐
-                  </span>
-                ))}
-                {` (${dailyStars}x sets completed above 50% today)`}
-              </p>
-            ) : (
-              <p>No stars earned yet today. Complete a set above 50% to earn a star!</p>
-            )}
-          </div>
+  <h3>Total Stars Earned ({totalStars})</h3>
+  {totalStars > 0 ? (
+    <div className="stars-container">
+      {Array.from({ length: totalStars }, (_, i) => (
+        <span key={i} role="img" aria-label="star" className="star-item">
+          ⭐
+        </span>
+      ))}
+    </div>
+  ) : (
+    <p>No stars earned yet. Complete a set above 50% to earn a star!</p>
+  )}
+</div>
+
+{/* Replace the existing Daily Stars section with this */}
+<div className="daily-stars">
+  <h3>Today's Achievements</h3>
+  {dailyStars > 0 ? (
+    <>
+      <div className="stars-container">
+        {Array.from({ length: dailyStars }, (_, i) => (
+          <span key={i} role="img" aria-label="star" className="star-item">
+            ⭐
+          </span>
+        ))}
+      </div>
+      <p>{`(${dailyStars}x sets completed above 50% today)`}</p>
+    </>
+  ) : (
+    <p>No stars earned yet today. Complete a set above 50% to earn a star!</p>
+  )}
+</div>
         </div>
       </div>
 
