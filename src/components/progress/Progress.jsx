@@ -2,6 +2,30 @@ import React, { useState, useEffect } from 'react';
 import firebaseServices from '../firebase/firebaseSetup';
 import './Progress.css';
 
+
+//Adding Function for Daily streak
+const calculateDailyStreak = (quizResults) => {
+  const dateToAttempts = {};
+
+  Object.values(quizResults).forEach((quiz) => {
+    const date = new Date(quiz.completedAt).toDateString();
+    if (!dateToAttempts[date]) dateToAttempts[date] = 0;
+    dateToAttempts[date]++;
+  });
+
+  let streak = 0;
+  let totalAttempts = 0;
+  let currentDate = new Date();
+
+  while (dateToAttempts[currentDate.toDateString()]) {
+    streak++;
+    totalAttempts += dateToAttempts[currentDate.toDateString()];
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return { streak, totalAttempts };
+};
+
 const MATH_DATA = {
   grades: [
     { code: "G1", text: "Grade 1" },
@@ -172,7 +196,6 @@ const Progress = () => {
 
       setQuestionDetailsLoading(true);
 
-      // Load cached question details from localStorage
       const cachedQuestions = localStorage.getItem('questionDetails');
       const newQuestionDetails = cachedQuestions ? JSON.parse(cachedQuestions) : {};
 
@@ -255,6 +278,18 @@ const Progress = () => {
     };
   };
 
+  const calculateTotalStars = () => {
+    if (!userData || !userData.quizResults) return 0;
+
+    const successfulSets = Object.values(userData.quizResults).filter((quiz) => {
+      const total = parseInt(quiz.totalQuestions) || 0;
+      const correct = parseInt(quiz.correctAnswers) || 0;
+      return total > 0 && (correct / total) * 100 >= 50;
+    }).length;
+
+    return successfulSets;
+  };
+
   const calculateCategoryProgress = (userData, questionDetails, mathData) => {
     const categories = {
       'Number System': { attempted: 0, correct: 0 },
@@ -326,6 +361,33 @@ const Progress = () => {
 
     return categories;
   };
+// logic for start
+  const hasStar = (quiz) => {
+    const total = parseInt(quiz.totalQuestions) || 0;
+    const correct = parseInt(quiz.correctAnswers) || 0;
+    return total > 0 && (correct / total) * 100 >= 50;
+  };
+
+  const calculateDailyStars = () => {
+    if (!userData || !userData.quizResults) return 0;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of today
+
+    const quizzesToday = Object.values(userData.quizResults).filter((quiz) => {
+      const quizDate = new Date(quiz.completedAt);
+      quizDate.setHours(0, 0, 0, 0); // Normalize to start of day
+      return quizDate.getTime() === today.getTime();
+    });
+
+    const successfulSets = quizzesToday.filter((quiz) => {
+      const total = parseInt(quiz.totalQuestions) || 0;
+      const correct = parseInt(quiz.correctAnswers) || 0;
+      return total > 0 && (correct / total) * 100 >= 50;
+    }).length;
+
+    return successfulSets; // Number of stars corresponds to number of successful sets
+  };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -396,7 +458,12 @@ const Progress = () => {
 
   const overallProgress = calculateOverallProgress();
   const categoryProgress = calculateCategoryProgress(userData, questionDetails, MATH_DATA);
+  const dailyStars = calculateDailyStars();
+  const totalStars = calculateTotalStars();
+ 
+  const { streak: dailyStreak, totalAttempts } = calculateDailyStreak(userData.quizResults);
 
+  
   return (
     <div className="progress-container">
       <h1>Your Learning Progress</h1>
@@ -428,6 +495,60 @@ const Progress = () => {
           <div className="progress-info">
             {overallProgress.correct} of {overallProgress.attempted} questions
           </div>
+          <div className="total-stars">
+  <h3>Total Stars Earned ({totalStars})</h3>
+  {totalStars > 0 ? (
+    <div className="stars-container">
+      {Array.from({ length: totalStars }, (_, i) => (
+        <span key={i} role="img" aria-label="star" className="star-item">
+          ⭐
+        </span>
+      ))}
+    </div>
+  ) : (
+    <p>No stars earned yet. Complete a set above 50% to earn a star!</p>
+  )}
+</div>
+
+{/* Here Adding daily streak   */}
+
+
+<div className="daily-streak">
+  <h3>Daily Streak 🔥</h3>
+  {dailyStreak > 0 ? (
+    <div className="streak-container">
+      {Array.from({ length: dailyStreak }, (_, i) => (
+        <span key={i} role="img" aria-label="flame" className="streak-fire">
+          🔥
+        </span>
+      ))}
+      <p>{`${dailyStreak} day streak!`}</p>
+      <p>{` ( You attempted ${totalAttempts} quiz${totalAttempts > 1 ? "zes" : ""} during this streak)`}</p>
+    </div>
+  ) : (
+    <p>No streak yet. Keep practicing daily to build your streak!</p>
+  )}
+</div>
+
+
+{/* Replace the existing Daily Stars section with this */}
+<div className="daily-stars">
+  <h3>Today's Achievements</h3>
+  {dailyStars > 0 ? (
+    <>
+      <div className="stars-container">
+        {Array.from({ length: dailyStars }, (_, i) => (
+          <span key={i} role="img" aria-label="star" className="star-item">
+            ⭐
+          </span>
+        ))}
+      </div>
+      <p>{`(${dailyStars}x sets completed above 50% today)`}</p>
+    </>
+  ) : (
+    <p>No stars earned yet today. Complete a set above 50% to earn a star!</p>
+  )}
+</div>
         </div>
       </div>
 
@@ -470,6 +591,7 @@ const Progress = () => {
                 <th>Score</th>
                 <th>Correct</th>
                 <th>Total</th>
+                <th>Achievement</th>
               </tr>
             </thead>
             <tbody>
@@ -483,10 +605,19 @@ const Progress = () => {
                     <td>{quiz.score || '0'}</td>
                     <td>{quiz.correctAnswers || 0}</td>
                     <td>{quiz.totalQuestions || 0}</td>
+                    <td>
+                      {hasStar(quiz) ? (
+                        <span role="img" aria-label="star">
+                          ⭐
+                        </span>
+                      ) : (
+                        '-'
+                      )}
+                    </td>
                   </tr>
                   {selectedQuizId === quizId && quiz.responses && (
                     <tr>
-                      <td colSpan="4">
+                      <td colSpan="5">
                         <div className="quiz-details">
                           <h3>Quiz Details</h3>
                           <table className="details-table">
