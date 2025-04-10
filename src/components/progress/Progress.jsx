@@ -2,6 +2,30 @@ import React, { useState, useEffect } from 'react';
 import firebaseServices from '../firebase/firebaseSetup';
 import './Progress.css';
 
+
+//Adding Function for Daily streak
+const calculateDailyStreak = (quizResults) => {
+  const dateToAttempts = {};
+
+  Object.values(quizResults).forEach((quiz) => {
+    const date = new Date(quiz.completedAt).toDateString();
+    if (!dateToAttempts[date]) dateToAttempts[date] = 0;
+    dateToAttempts[date]++;
+  });
+
+  let streak = 0;
+  let totalAttempts = 0;
+  let currentDate = new Date();
+
+  while (dateToAttempts[currentDate.toDateString()]) {
+    streak++;
+    totalAttempts += dateToAttempts[currentDate.toDateString()];
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return { streak, totalAttempts };
+};
+
 const MATH_DATA = {
   grades: [
     { code: "G1", text: "Grade 1" },
@@ -337,7 +361,7 @@ const Progress = () => {
 
     return categories;
   };
-
+// logic for start
   const hasStar = (quiz) => {
     const total = parseInt(quiz.totalQuestions) || 0;
     const correct = parseInt(quiz.correctAnswers) || 0;
@@ -436,7 +460,10 @@ const Progress = () => {
   const categoryProgress = calculateCategoryProgress(userData, questionDetails, MATH_DATA);
   const dailyStars = calculateDailyStars();
   const totalStars = calculateTotalStars();
+ 
+  const { streak: dailyStreak, totalAttempts } = calculateDailyStreak(userData.quizResults);
 
+  
   return (
     <div className="progress-container">
       <h1>Your Learning Progress</h1>
@@ -482,6 +509,27 @@ const Progress = () => {
     <p>No stars earned yet. Complete a set above 50% to earn a star!</p>
   )}
 </div>
+
+{/* Here Adding daily streak   */}
+
+
+<div className="daily-streak">
+  <h3>Daily Streak 🔥</h3>
+  {dailyStreak > 0 ? (
+    <div className="streak-container">
+      {Array.from({ length: dailyStreak }, (_, i) => (
+        <span key={i} role="img" aria-label="flame" className="streak-fire">
+          🔥
+        </span>
+      ))}
+      <p>{`${dailyStreak} day streak!`}</p>
+      <p>{` ( You attempted ${totalAttempts} quiz${totalAttempts > 1 ? "zes" : ""} during this streak)`}</p>
+    </div>
+  ) : (
+    <p>No streak yet. Keep practicing daily to build your streak!</p>
+  )}
+</div>
+
 
 {/* Replace the existing Daily Stars section with this */}
 <div className="daily-stars">
