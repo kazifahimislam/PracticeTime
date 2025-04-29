@@ -4,6 +4,7 @@ import Login from './components/login/Login';
 import Home from './components/home/Home';
 import Navbar from './components/navbar/Navbar';
 import Progress from './components/progress/Progress';
+import Start from './components/start/Start'; // Import Start component
 
 const App = () => {
   // Check authentication status
@@ -18,7 +19,7 @@ const App = () => {
   // Check authentication on initial load
   useEffect(() => {
     if (isAuthenticated()) {
-      setCurrentPage("start");
+      setCurrentPage("home");
     } else {
       setCurrentPage("login");
     }
@@ -45,11 +46,13 @@ const App = () => {
   // Render appropriate component based on currentPage
   const renderPage = () => {
     switch (currentPage) {
-      case "start":
+      case "home":
         return <Home />;
       case "practice":
         return <Quiz />;
-
+        case "start":
+          return <Start />;   // Start.jsx page
+  
       case "progress":
         return <Progress />;
       case "login":
