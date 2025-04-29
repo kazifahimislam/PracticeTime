@@ -35,7 +35,8 @@ const Navbar = ({ onNavigate }) => {
         <ul>
 
         <li onClick={() => handleNavigation("progress")}>Progress</li>
-          <li onClick={() => handleNavigation("start")}>Home Page</li>
+        <li onClick={() => handleNavigation("start")}>Start</li>
+          <li onClick={() => handleNavigation("home")}>Home Page</li>
           
           <li onClick={handleLogout}>Log out</li>
         </ul>
