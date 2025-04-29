@@ -4,7 +4,7 @@ import Login from './components/login/Login';
 import Home from './components/home/Home';
 import Navbar from './components/navbar/Navbar';
 import Progress from './components/progress/Progress';
-import Start from './components/start/Start'; // Import Start component
+import Start from './components/start/start';
 
 const App = () => {
   // Check authentication status
